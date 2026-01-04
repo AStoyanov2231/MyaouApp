@@ -105,9 +105,12 @@ CREATE TABLE dm_threads (
     last_message_at TIMESTAMPTZ,
     last_message_preview TEXT,
     created_at TIMESTAMPTZ DEFAULT NOW(),
-    UNIQUE(LEAST(participant_1_id, participant_2_id), GREATEST(participant_1_id, participant_2_id)),
     CHECK (participant_1_id != participant_2_id)
 );
+
+-- Unique index to prevent duplicate threads (order-independent)
+CREATE UNIQUE INDEX idx_dm_threads_participants_unique
+ON dm_threads (LEAST(participant_1_id, participant_2_id), GREATEST(participant_1_id, participant_2_id));
 
 -- DM messages table
 CREATE TABLE dm_messages (

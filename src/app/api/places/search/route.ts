@@ -17,25 +17,20 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: "Query too short" }, { status: 400 });
   }
 
-  // Check cache first
-  const { data: cachedPlaces } = await supabase
+  // Check local places first
+  const { data: localPlaces } = await supabase
     .from("places")
     .select("*")
     .ilike("name", `%${query}%`)
-    .gte("cache_expires_at", new Date().toISOString())
     .limit(10);
 
-  if (cachedPlaces && cachedPlaces.length >= 5) {
-    return NextResponse.json({ places: cachedPlaces, source: "cache" });
+  // If no Google API key, return local results only
+  if (!process.env.GOOGLE_PLACES_API_KEY || process.env.GOOGLE_PLACES_API_KEY === "your_google_api_key") {
+    return NextResponse.json({ places: localPlaces || [], source: "local" });
   }
 
-  // Query Google Places API
-  if (!process.env.GOOGLE_PLACES_API_KEY) {
-    return NextResponse.json({
-      places: cachedPlaces || [],
-      source: "cache",
-      warning: "Google API not configured",
-    });
+  if (localPlaces && localPlaces.length >= 5) {
+    return NextResponse.json({ places: localPlaces, source: "cache" });
   }
 
   try {
@@ -68,7 +63,7 @@ export async function GET(request: NextRequest) {
     if (!googleResponse.ok) {
       const { data: fallback } = await supabase.rpc("get_popular_places", { limit_count: 20 });
       return NextResponse.json({
-        places: fallback || cachedPlaces || [],
+        places: fallback || localPlaces || [],
         source: "fallback",
       });
     }
