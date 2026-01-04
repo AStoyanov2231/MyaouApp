@@ -1,12 +1,12 @@
 "use client";
 import { useState, useEffect } from "react";
-import { Camera, MapPin } from "lucide-react";
+import { Camera, MapPin, AlertCircle } from "lucide-react";
 import { Button, Input, Avatar, Spinner } from "@/components/ui";
 import { useAuth } from "@/hooks/useAuth";
 import type { Profile } from "@/types/database";
 
 export default function ProfilePage() {
-  const { profile: authProfile, loading: authLoading } = useAuth();
+  const { profile: authProfile, loading: authLoading, profileLoading } = useAuth();
   const [profile, setProfile] = useState<Profile | null>(null);
   const [editing, setEditing] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -36,10 +36,22 @@ export default function ProfilePage() {
     setSaving(false);
   };
 
-  if (authLoading || !profile) {
+  // Show loading only during initial auth check or profile fetch
+  if (authLoading || profileLoading) {
     return (
       <div className="flex justify-center items-center h-full">
         <Spinner />
+      </div>
+    );
+  }
+
+  // Show error state if profile failed to load
+  if (!profile) {
+    return (
+      <div className="flex flex-col justify-center items-center h-full gap-4">
+        <AlertCircle className="text-red-500" size={48} />
+        <p className="text-gray-600">Failed to load profile</p>
+        <Button onClick={() => window.location.reload()}>Retry</Button>
       </div>
     );
   }
