@@ -200,10 +200,15 @@ $$ LANGUAGE plpgsql;
 CREATE TRIGGER dm_messages_update_thread AFTER INSERT ON dm_messages FOR EACH ROW EXECUTE FUNCTION update_dm_thread_last_message();
 
 -- Auto-create profile on user signup
+-- Note: This trigger uses SECURITY DEFINER to bypass RLS
+-- SET search_path ensures the function runs in the correct schema context
 CREATE OR REPLACE FUNCTION handle_new_user()
-RETURNS TRIGGER AS $$
+RETURNS TRIGGER
+SECURITY DEFINER
+SET search_path = public
+AS $$
 BEGIN
-    INSERT INTO profiles (id, username, display_name, avatar_url)
+    INSERT INTO public.profiles (id, username, display_name, avatar_url)
     VALUES (
         NEW.id,
         COALESCE(NEW.raw_user_meta_data->>'username', 'user_' || LEFT(NEW.id::text, 8)),
@@ -211,8 +216,11 @@ BEGIN
         NEW.raw_user_meta_data->>'avatar_url'
     );
     RETURN NEW;
+EXCEPTION WHEN unique_violation THEN
+    -- Profile already exists, ignore
+    RETURN NEW;
 END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
+$$ LANGUAGE plpgsql;
 
 CREATE TRIGGER on_auth_user_created AFTER INSERT ON auth.users FOR EACH ROW EXECUTE FUNCTION handle_new_user();
 

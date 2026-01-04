@@ -10,13 +10,46 @@ export function useAuth() {
   const [loading, setLoading] = useState(true);
   const supabase = createClient();
 
+  const fetchOrCreateProfile = async (authUser: User): Promise<Profile | null> => {
+    // Try to fetch existing profile
+    const { data: existingProfile } = await supabase
+      .from("profiles")
+      .select("*")
+      .eq("id", authUser.id)
+      .single();
+
+    if (existingProfile) {
+      return existingProfile;
+    }
+
+    // Profile doesn't exist, create it
+    const username = authUser.user_metadata?.username || `user_${authUser.id.slice(0, 8)}`;
+    const { data: newProfile, error } = await supabase
+      .from("profiles")
+      .insert({
+        id: authUser.id,
+        username,
+        display_name: authUser.user_metadata?.full_name || authUser.user_metadata?.name || null,
+        avatar_url: authUser.user_metadata?.avatar_url || null,
+      })
+      .select()
+      .single();
+
+    if (error) {
+      console.error("Failed to create profile:", error);
+      return null;
+    }
+
+    return newProfile;
+  };
+
   useEffect(() => {
     const getUser = async () => {
       const { data: { user } } = await supabase.auth.getUser();
       setUser(user);
       if (user) {
-        const { data } = await supabase.from("profiles").select("*").eq("id", user.id).single();
-        setProfile(data);
+        const profile = await fetchOrCreateProfile(user);
+        setProfile(profile);
       }
       setLoading(false);
     };
@@ -26,8 +59,8 @@ export function useAuth() {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_, session) => {
       setUser(session?.user ?? null);
       if (session?.user) {
-        const { data } = await supabase.from("profiles").select("*").eq("id", session.user.id).single();
-        setProfile(data);
+        const profile = await fetchOrCreateProfile(session.user);
+        setProfile(profile);
       } else {
         setProfile(null);
       }
