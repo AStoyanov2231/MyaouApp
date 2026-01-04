@@ -1,20 +1,28 @@
 "use client";
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import { createClient } from "@/lib/supabase/client";
 import type { Message } from "@/types/database";
 
 export function useMessages(placeId: string) {
   const [messages, setMessages] = useState<Message[]>([]);
   const [loading, setLoading] = useState(true);
-  const supabase = createClient();
+
+  // Create stable supabase client
+  const supabase = useMemo(() => createClient(), []);
   const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
+  const initializedRef = useRef(false);
 
   const fetchMessages = useCallback(async () => {
     setLoading(true);
-    const res = await fetch(`/api/messages/${placeId}`);
-    const data = await res.json();
-    setMessages(data.messages || []);
-    setLoading(false);
+    try {
+      const res = await fetch(`/api/messages/${placeId}`);
+      const data = await res.json();
+      setMessages(data.messages || []);
+    } catch (error) {
+      console.error("Failed to fetch messages:", error);
+    } finally {
+      setLoading(false);
+    }
   }, [placeId]);
 
   const sendMessage = useCallback(
@@ -35,8 +43,15 @@ export function useMessages(placeId: string) {
   );
 
   useEffect(() => {
+    // Prevent double initialization in strict mode
+    if (initializedRef.current) return;
+    initializedRef.current = true;
+
+    let isMounted = true;
+
     fetchMessages();
 
+    // Set up realtime subscription
     channelRef.current = supabase
       .channel(`place:${placeId}`)
       .on(
@@ -48,19 +63,27 @@ export function useMessages(placeId: string) {
           filter: `place_id=eq.${placeId}`,
         },
         async (payload) => {
+          if (!isMounted) return;
+
           const { data: newMessage } = await supabase
             .from("messages")
             .select("*, sender:profiles(*)")
             .eq("id", payload.new.id)
             .single();
-          if (newMessage) {
-            setMessages((prev) => [...prev, newMessage]);
+
+          if (newMessage && isMounted) {
+            setMessages((prev) => {
+              // Avoid duplicates
+              if (prev.some(m => m.id === newMessage.id)) return prev;
+              return [...prev, newMessage];
+            });
           }
         }
       )
       .subscribe();
 
     return () => {
+      isMounted = false;
       channelRef.current?.unsubscribe();
     };
   }, [placeId, fetchMessages, supabase]);
