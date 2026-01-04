@@ -101,7 +101,7 @@ export async function GET(request: NextRequest) {
   } catch {
     const { data: fallback } = await supabase.rpc("get_popular_places", { limit_count: 20 });
     return NextResponse.json({
-      places: fallback || cachedPlaces || [],
+      places: fallback || localPlaces || [],
       source: "fallback",
     });
   }
