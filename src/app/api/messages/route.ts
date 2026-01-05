@@ -12,7 +12,7 @@ export async function POST(request: NextRequest) {
   const { place_id, content, message_type = "text", media_url, media_thumbnail_url, reply_to_id } = await request.json();
 
   // Check membership
-  const { data: membership } = await supabase
+  const { data: membership, error: membershipError } = await supabase
     .from("place_members")
     .select("id")
     .eq("place_id", place_id)
@@ -20,6 +20,12 @@ export async function POST(request: NextRequest) {
     .single();
 
   if (!membership) {
+    console.error("Membership check failed:", {
+      place_id,
+      user_id: user.id,
+      error: membershipError?.message,
+      code: membershipError?.code
+    });
     return NextResponse.json({ error: "Not a member" }, { status: 403 });
   }
 
