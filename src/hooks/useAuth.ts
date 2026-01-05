@@ -122,9 +122,20 @@ export function useAuth() {
       }
     );
 
+    // Refresh session when tab becomes visible (handles stale sessions)
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "visible") {
+        // Silently refresh the session - Supabase handles token refresh automatically
+        supabase.auth.getSession();
+      }
+    };
+
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+
     return () => {
       isMounted = false;
       subscription.unsubscribe();
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
     };
   }, [fetchOrCreateProfile]);
 

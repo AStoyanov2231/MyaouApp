@@ -39,10 +39,16 @@ export async function signup(formData: FormData) {
   const password = formData.get("password") as string;
   const username = formData.get("username") as string;
 
+  // Use the correct app URL for email confirmation redirect
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
+
   const { data, error } = await supabase.auth.signUp({
     email,
     password,
-    options: { data: { username } },
+    options: {
+      data: { username },
+      emailRedirectTo: `${appUrl}/auth/callback`,
+    },
   });
   if (error) return { error: error.message };
 
