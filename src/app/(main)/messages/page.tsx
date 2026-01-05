@@ -148,7 +148,7 @@ export default function MessagesPage() {
         <div className="space-y-2">
           {threads.map((thread) => {
             const isPlace = thread.type === "place";
-            const href = isPlace ? `/places/${thread.id}` : `/messages/${thread.id}`;
+            const href = isPlace ? `/messages/place/${thread.id}` : `/messages/${thread.id}`;
             const name = isPlace ? thread.name : (() => { const o = getOtherParticipant(thread); return o.display_name || o.username; })();
             const avatarSrc = isPlace ? thread.cached_photo_url : getOtherParticipant(thread).avatar_url;
 
