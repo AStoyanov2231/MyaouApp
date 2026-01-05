@@ -10,6 +10,9 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
+  // Leave any existing place first (user can only be in one place at a time)
+  await supabase.from("place_members").delete().eq("user_id", user.id);
+
   const { data, error } = await supabase.from("place_members").insert({
     place_id: placeId,
     user_id: user.id,

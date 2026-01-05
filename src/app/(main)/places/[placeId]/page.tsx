@@ -24,6 +24,7 @@ export default function ChatRoomPage({ params }: { params: Promise<{ placeId: st
       .then((d) => {
         setPlace(d.place);
         setIsMember(d.isMember);
+        if (d.isMember) fetch(`/api/places/${placeId}/read`, { method: "POST" });
       });
   }, [placeId]);
 

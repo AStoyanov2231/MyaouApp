@@ -7,18 +7,33 @@ import { useAuth } from "@/hooks/useAuth";
 import { createClient } from "@/lib/supabase/client";
 import type { DMThread, Profile } from "@/types/database";
 import { formatDistanceToNow } from "date-fns";
+import { MapPin } from "lucide-react";
 
 const supabase = createClient();
 
-type ThreadWithParticipants = DMThread & {
+type DMThreadWithParticipants = DMThread & {
+  type: "dm";
   participant_1: Profile;
   participant_2: Profile;
   unread_count?: number;
 };
 
+type PlaceThread = {
+  id: string;
+  type: "place";
+  name: string;
+  cached_photo_url?: string;
+  member_count?: number;
+  last_message_at?: string;
+  last_message_preview?: string;
+  unread_count?: number;
+};
+
+type Thread = DMThreadWithParticipants | PlaceThread;
+
 export default function MessagesPage() {
   const { user } = useAuth();
-  const [threads, setThreads] = useState<ThreadWithParticipants[]>([]);
+  const [threads, setThreads] = useState<Thread[]>([]);
   const [loading, setLoading] = useState(true);
   const searchParams = useSearchParams();
   const router = useRouter();
@@ -66,10 +81,18 @@ export default function MessagesPage() {
           table: "dm_messages",
         },
         async () => {
-          // Refetch threads when new message arrives (to update preview and unread)
-          if (isMounted) {
-            fetchThreads();
-          }
+          if (isMounted) fetchThreads();
+        }
+      )
+      .on(
+        "postgres_changes",
+        {
+          event: "INSERT",
+          schema: "public",
+          table: "messages",
+        },
+        async () => {
+          if (isMounted) fetchThreads();
         }
       )
       .subscribe((status) => {
@@ -112,7 +135,7 @@ export default function MessagesPage() {
     );
   }
 
-  const getOtherParticipant = (thread: ThreadWithParticipants) =>
+  const getOtherParticipant = (thread: DMThreadWithParticipants) =>
     thread.participant_1_id === user?.id ? thread.participant_2 : thread.participant_1;
 
   return (
@@ -124,15 +147,25 @@ export default function MessagesPage() {
       ) : (
         <div className="space-y-2">
           {threads.map((thread) => {
-            const other = getOtherParticipant(thread);
+            const isPlace = thread.type === "place";
+            const href = isPlace ? `/places/${thread.id}` : `/messages/${thread.id}`;
+            const name = isPlace ? thread.name : (() => { const o = getOtherParticipant(thread); return o.display_name || o.username; })();
+            const avatarSrc = isPlace ? thread.cached_photo_url : getOtherParticipant(thread).avatar_url;
+
             return (
               <Link
                 key={thread.id}
-                href={`/messages/${thread.id}`}
+                href={href}
                 className={`bg-white rounded-lg p-4 flex items-center gap-3 hover:bg-gray-50 ${thread.unread_count ? "border-l-4 border-primary" : ""}`}
               >
                 <div className="relative">
-                  <Avatar src={other.avatar_url} name={other.display_name || other.username} />
+                  {isPlace ? (
+                    <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
+                      <MapPin className="text-primary" size={20} />
+                    </div>
+                  ) : (
+                    <Avatar src={avatarSrc} name={name} />
+                  )}
                   {thread.unread_count ? (
                     <span className="absolute -top-1 -right-1 bg-primary text-white text-xs w-5 h-5 rounded-full flex items-center justify-center">
                       {thread.unread_count > 9 ? "9+" : thread.unread_count}
@@ -140,7 +173,7 @@ export default function MessagesPage() {
                   ) : null}
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className={`font-medium ${thread.unread_count ? "font-bold" : ""}`}>{other.display_name || other.username}</p>
+                  <p className={`font-medium ${thread.unread_count ? "font-bold" : ""}`}>{name}</p>
                   {thread.last_message_preview && (
                     <p className={`text-sm truncate ${thread.unread_count ? "text-gray-700 font-medium" : "text-gray-500"}`}>{thread.last_message_preview}</p>
                   )}

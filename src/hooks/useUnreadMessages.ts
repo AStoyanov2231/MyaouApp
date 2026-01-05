@@ -28,21 +28,18 @@ export function useUnreadMessages() {
       supabase.removeChannel(channelRef.current);
     }
 
-    // Subscribe to dm_messages changes
+    // Subscribe to dm_messages and messages changes
     const channel = supabase
       .channel(`unread-count:${Date.now()}`)
       .on(
         "postgres_changes",
-        {
-          event: "*",
-          schema: "public",
-          table: "dm_messages",
-        },
-        () => {
-          if (isMounted) {
-            fetchUnreadCount();
-          }
-        }
+        { event: "*", schema: "public", table: "dm_messages" },
+        () => { if (isMounted) fetchUnreadCount(); }
+      )
+      .on(
+        "postgres_changes",
+        { event: "INSERT", schema: "public", table: "messages" },
+        () => { if (isMounted) fetchUnreadCount(); }
       )
       .subscribe();
 
