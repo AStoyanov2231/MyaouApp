@@ -8,6 +8,8 @@ import { createClient } from "@/lib/supabase/client";
 import type { DMThread, DMMessage, Profile } from "@/types/database";
 import { formatDistanceToNow } from "date-fns";
 
+const supabase = createClient();
+
 type ThreadWithParticipants = DMThread & {
   participant_1: Profile;
   participant_2: Profile;
@@ -22,19 +24,31 @@ export default function DMConversationPage({ params }: { params: Promise<{ threa
   const [input, setInput] = useState("");
   const [sending, setSending] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const supabase = createClient();
+  const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
 
   useEffect(() => {
+    let isMounted = true;
+
     fetch(`/api/dm/${threadId}`)
       .then((r) => r.json())
       .then((d) => {
-        setThread(d.thread);
-        setMessages(d.messages || []);
-        setLoading(false);
+        if (isMounted) {
+          setThread(d.thread);
+          setMessages(d.messages || []);
+          setLoading(false);
+        }
       });
 
+    // Mark messages as read when viewing thread
+    fetch(`/api/dm/${threadId}/read`, { method: "POST" });
+
+    // Clean up existing channel
+    if (channelRef.current) {
+      supabase.removeChannel(channelRef.current);
+    }
+
     const channel = supabase
-      .channel(`dm:${threadId}`)
+      .channel(`dm:${threadId}:${Date.now()}`)
       .on(
         "postgres_changes",
         {
@@ -44,22 +58,38 @@ export default function DMConversationPage({ params }: { params: Promise<{ threa
           filter: `thread_id=eq.${threadId}`,
         },
         async (payload) => {
+          if (!isMounted) return;
           const { data: newMessage } = await supabase
             .from("dm_messages")
             .select("*, sender:profiles(*)")
             .eq("id", payload.new.id)
             .single();
-          if (newMessage) {
-            setMessages((prev) => [...prev, newMessage]);
+          if (newMessage && isMounted) {
+            setMessages((prev) => {
+              if (prev.some(m => m.id === newMessage.id)) return prev;
+              return [...prev, newMessage];
+            });
+            // Mark as read since user is viewing
+            fetch(`/api/dm/${threadId}/read`, { method: "POST" });
           }
         }
       )
-      .subscribe();
+      .subscribe((status) => {
+        if (status === "SUBSCRIBED") {
+          console.log(`Subscribed to dm:${threadId} realtime`);
+        }
+      });
+
+    channelRef.current = channel;
 
     return () => {
-      channel.unsubscribe();
+      isMounted = false;
+      if (channelRef.current) {
+        supabase.removeChannel(channelRef.current);
+        channelRef.current = null;
+      }
     };
-  }, [threadId, supabase]);
+  }, [threadId]);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });

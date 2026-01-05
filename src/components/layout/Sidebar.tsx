@@ -5,6 +5,7 @@ import { MapPin, MessageCircle, Users, User, LogOut } from "lucide-react";
 import { Avatar } from "@/components/ui";
 import type { Profile } from "@/types/database";
 import { signOut } from "@/app/(auth)/actions";
+import { useUnreadMessages } from "@/hooks/useUnreadMessages";
 
 const navItems = [
   { href: "/places", icon: MapPin, label: "Places" },
@@ -15,6 +16,7 @@ const navItems = [
 
 export function Sidebar({ profile }: { profile: Profile | null }) {
   const pathname = usePathname();
+  const { unreadCount } = useUnreadMessages();
 
   return (
     <aside className="hidden md:flex flex-col w-64 bg-white border-r h-screen sticky top-0">
@@ -32,7 +34,14 @@ export function Sidebar({ profile }: { profile: Profile | null }) {
                 : "hover:bg-gray-100"
             }`}
           >
-            <Icon size={20} />
+            <div className="relative">
+              <Icon size={20} />
+              {href === "/messages" && unreadCount > 0 && (
+                <span className="absolute -top-1 -right-2 bg-red-500 text-white text-[10px] min-w-[16px] h-4 px-1 rounded-full flex items-center justify-center">
+                  {unreadCount > 9 ? "9+" : unreadCount}
+                </span>
+              )}
+            </div>
             {label}
           </Link>
         ))}

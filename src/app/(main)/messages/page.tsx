@@ -1,15 +1,19 @@
 "use client";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { Avatar, Spinner } from "@/components/ui";
 import { useAuth } from "@/hooks/useAuth";
+import { createClient } from "@/lib/supabase/client";
 import type { DMThread, Profile } from "@/types/database";
 import { formatDistanceToNow } from "date-fns";
+
+const supabase = createClient();
 
 type ThreadWithParticipants = DMThread & {
   participant_1: Profile;
   participant_2: Profile;
+  unread_count?: number;
 };
 
 export default function MessagesPage() {
@@ -18,15 +22,72 @@ export default function MessagesPage() {
   const [loading, setLoading] = useState(true);
   const searchParams = useSearchParams();
   const router = useRouter();
+  const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
+
+  const fetchThreads = useCallback(async () => {
+    const res = await fetch("/api/dm/threads");
+    const d = await res.json();
+    setThreads(d.threads || []);
+    setLoading(false);
+  }, []);
 
   useEffect(() => {
-    fetch("/api/dm/threads")
-      .then((r) => r.json())
-      .then((d) => {
-        setThreads(d.threads || []);
-        setLoading(false);
+    let isMounted = true;
+
+    fetchThreads();
+
+    // Clean up existing channel
+    if (channelRef.current) {
+      supabase.removeChannel(channelRef.current);
+    }
+
+    // Subscribe to dm_threads changes for this user
+    const channel = supabase
+      .channel(`dm-threads:${Date.now()}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "dm_threads",
+        },
+        async () => {
+          // Refetch threads when any thread changes
+          if (isMounted) {
+            fetchThreads();
+          }
+        }
+      )
+      .on(
+        "postgres_changes",
+        {
+          event: "INSERT",
+          schema: "public",
+          table: "dm_messages",
+        },
+        async () => {
+          // Refetch threads when new message arrives (to update preview and unread)
+          if (isMounted) {
+            fetchThreads();
+          }
+        }
+      )
+      .subscribe((status) => {
+        if (status === "SUBSCRIBED") {
+          console.log("Subscribed to dm threads realtime");
+        }
       });
-  }, []);
+
+    channelRef.current = channel;
+
+    return () => {
+      isMounted = false;
+      if (channelRef.current) {
+        supabase.removeChannel(channelRef.current);
+        channelRef.current = null;
+      }
+    };
+  }, [fetchThreads]);
 
   useEffect(() => {
     const userId = searchParams.get("user");
@@ -68,20 +129,29 @@ export default function MessagesPage() {
               <Link
                 key={thread.id}
                 href={`/messages/${thread.id}`}
-                className="bg-white rounded-lg p-4 flex items-center gap-3 hover:bg-gray-50"
+                className={`bg-white rounded-lg p-4 flex items-center gap-3 hover:bg-gray-50 ${thread.unread_count ? "border-l-4 border-primary" : ""}`}
               >
-                <Avatar src={other.avatar_url} name={other.display_name || other.username} />
+                <div className="relative">
+                  <Avatar src={other.avatar_url} name={other.display_name || other.username} />
+                  {thread.unread_count ? (
+                    <span className="absolute -top-1 -right-1 bg-primary text-white text-xs w-5 h-5 rounded-full flex items-center justify-center">
+                      {thread.unread_count > 9 ? "9+" : thread.unread_count}
+                    </span>
+                  ) : null}
+                </div>
                 <div className="flex-1 min-w-0">
-                  <p className="font-medium">{other.display_name || other.username}</p>
+                  <p className={`font-medium ${thread.unread_count ? "font-bold" : ""}`}>{other.display_name || other.username}</p>
                   {thread.last_message_preview && (
-                    <p className="text-sm text-gray-500 truncate">{thread.last_message_preview}</p>
+                    <p className={`text-sm truncate ${thread.unread_count ? "text-gray-700 font-medium" : "text-gray-500"}`}>{thread.last_message_preview}</p>
                   )}
                 </div>
-                {thread.last_message_at && (
-                  <span className="text-xs text-gray-400">
-                    {formatDistanceToNow(new Date(thread.last_message_at), { addSuffix: true })}
-                  </span>
-                )}
+                <div className="flex flex-col items-end gap-1">
+                  {thread.last_message_at && (
+                    <span className={`text-xs ${thread.unread_count ? "text-primary font-medium" : "text-gray-400"}`}>
+                      {formatDistanceToNow(new Date(thread.last_message_at), { addSuffix: true })}
+                    </span>
+                  )}
+                </div>
               </Link>
             );
           })}

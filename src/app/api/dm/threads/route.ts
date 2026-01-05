@@ -15,7 +15,20 @@ export async function GET() {
     .or(`participant_1_id.eq.${user.id},participant_2_id.eq.${user.id}`)
     .order("last_message_at", { ascending: false, nullsFirst: false });
 
-  return NextResponse.json({ threads: threads || [] });
+  // Get unread counts for each thread
+  const threadsWithUnread = await Promise.all(
+    (threads || []).map(async (thread) => {
+      const { count } = await supabase
+        .from("dm_messages")
+        .select("*", { count: "exact", head: true })
+        .eq("thread_id", thread.id)
+        .neq("sender_id", user.id)
+        .eq("is_read", false);
+      return { ...thread, unread_count: count || 0 };
+    })
+  );
+
+  return NextResponse.json({ threads: threadsWithUnread, total_unread: threadsWithUnread.reduce((sum, t) => sum + (t.unread_count || 0), 0) });
 }
 
 export async function POST(request: NextRequest) {
