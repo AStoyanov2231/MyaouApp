@@ -67,6 +67,8 @@ export function useMessages(placeId: string) {
           const res = await fetch(`/api/messages/${placeId}`);
           const data = await res.json();
           if (isMounted) setMessages(data.messages || []);
+          // Mark messages as read since user is viewing this place
+          fetch(`/api/places/${placeId}/read`, { method: "POST" });
         }
       )
       .subscribe((status) => {
