@@ -62,22 +62,11 @@ export function useMessages(placeId: string) {
           table: "messages",
           filter: `place_id=eq.${placeId}`,
         },
-        async (payload) => {
+        async () => {
           if (!isMounted) return;
-
-          const { data: newMessage } = await supabase
-            .from("messages")
-            .select("*, sender:profiles(*)")
-            .eq("id", payload.new.id)
-            .single();
-
-          if (newMessage && isMounted) {
-            setMessages((prev) => {
-              // Avoid duplicates
-              if (prev.some(m => m.id === newMessage.id)) return prev;
-              return [...prev, newMessage];
-            });
-          }
+          const res = await fetch(`/api/messages/${placeId}`);
+          const data = await res.json();
+          if (isMounted) setMessages(data.messages || []);
         }
       )
       .subscribe((status) => {
