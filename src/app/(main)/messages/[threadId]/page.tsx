@@ -99,11 +99,13 @@ export default function DMConversationPage({ params }: { params: Promise<{ threa
     e.preventDefault();
     if (!input.trim() || sending) return;
     setSending(true);
-    await fetch(`/api/dm/${threadId}`, {
+    const res = await fetch(`/api/dm/${threadId}`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ content: input.trim() }),
     });
+    const { message } = await res.json();
+    if (message) setMessages((prev) => prev.some(m => m.id === message.id) ? prev : [...prev, message]);
     setInput("");
     setSending(false);
   };
