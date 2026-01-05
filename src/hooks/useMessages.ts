@@ -1,16 +1,15 @@
 "use client";
-import { useState, useEffect, useCallback, useRef, useMemo } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { createClient } from "@/lib/supabase/client";
 import type { Message } from "@/types/database";
+
+// Get the singleton client
+const supabase = createClient();
 
 export function useMessages(placeId: string) {
   const [messages, setMessages] = useState<Message[]>([]);
   const [loading, setLoading] = useState(true);
-
-  // Create stable supabase client
-  const supabase = useMemo(() => createClient(), []);
   const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
-  const initializedRef = useRef(false);
 
   const fetchMessages = useCallback(async () => {
     setLoading(true);
@@ -43,17 +42,18 @@ export function useMessages(placeId: string) {
   );
 
   useEffect(() => {
-    // Prevent double initialization in strict mode
-    if (initializedRef.current) return;
-    initializedRef.current = true;
-
     let isMounted = true;
 
     fetchMessages();
 
+    // Clean up any existing channel before creating a new one
+    if (channelRef.current) {
+      supabase.removeChannel(channelRef.current);
+    }
+
     // Set up realtime subscription
-    channelRef.current = supabase
-      .channel(`place:${placeId}`)
+    const channel = supabase
+      .channel(`place:${placeId}:${Date.now()}`)
       .on(
         "postgres_changes",
         {
@@ -80,13 +80,22 @@ export function useMessages(placeId: string) {
           }
         }
       )
-      .subscribe();
+      .subscribe((status) => {
+        if (status === "SUBSCRIBED") {
+          console.log(`Subscribed to place:${placeId} realtime`);
+        }
+      });
+
+    channelRef.current = channel;
 
     return () => {
       isMounted = false;
-      channelRef.current?.unsubscribe();
+      if (channelRef.current) {
+        supabase.removeChannel(channelRef.current);
+        channelRef.current = null;
+      }
     };
-  }, [placeId, fetchMessages, supabase]);
+  }, [placeId, fetchMessages]);
 
   return { messages, loading, sendMessage, refetch: fetchMessages };
 }
