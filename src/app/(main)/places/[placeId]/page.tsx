@@ -91,11 +91,14 @@ export default function ChatRoomPage({ params }: { params: Promise<{ placeId: st
               key={msg.id}
               className={`flex gap-3 ${msg.sender_id === user?.id ? "flex-row-reverse" : ""}`}
             >
-              <Avatar
-                src={msg.sender?.avatar_url}
-                name={msg.sender?.display_name || msg.sender?.username}
-                size="sm"
-              />
+              <Link href={`/profile/${msg.sender_id}`}>
+                <Avatar
+                  src={msg.sender?.avatar_url}
+                  name={msg.sender?.display_name || msg.sender?.username}
+                  size="sm"
+                  className="cursor-pointer hover:opacity-80"
+                />
+              </Link>
               <div
                 className={`max-w-[70%] ${
                   msg.sender_id === user?.id
@@ -104,9 +107,9 @@ export default function ChatRoomPage({ params }: { params: Promise<{ placeId: st
                 } p-3 shadow-sm`}
               >
                 {msg.sender_id !== user?.id && (
-                  <p className="text-xs font-medium text-gray-600 mb-1">
+                  <Link href={`/profile/${msg.sender_id}`} className="text-xs font-medium text-gray-600 mb-1 hover:underline block">
                     {msg.sender?.display_name || msg.sender?.username}
-                  </p>
+                  </Link>
                 )}
                 {msg.media_url && (
                   <img src={msg.media_url} alt="" className="rounded mb-2 max-w-full" />
