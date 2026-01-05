@@ -10,6 +10,19 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
+  // Check if user is a member of this place
+  const { data: membership } = await supabase
+    .from("place_members")
+    .select("id")
+    .eq("place_id", placeId)
+    .eq("user_id", user.id)
+    .single();
+
+  if (!membership) {
+    // User hasn't joined - return empty messages (they can still view the place but not messages)
+    return NextResponse.json({ messages: [], nextCursor: null });
+  }
+
   const cursor = request.nextUrl.searchParams.get("cursor");
   const limit = 50;
 
@@ -28,6 +41,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
   const { data: messages, error } = await query;
 
   if (error) {
+    console.error("Error fetching messages:", error);
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 

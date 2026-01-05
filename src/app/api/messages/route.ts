@@ -38,6 +38,7 @@ export async function POST(request: NextRequest) {
     .single();
 
   if (error) {
+    console.error("Error sending message:", error);
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 
