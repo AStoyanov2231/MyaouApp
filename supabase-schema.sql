@@ -292,6 +292,8 @@ CREATE POLICY "Users can insert own profile" ON profiles FOR INSERT WITH CHECK (
 CREATE POLICY "Places are viewable by authenticated users" ON places FOR SELECT TO authenticated USING (true);
 
 -- Place members
+CREATE POLICY "Users can view own membership" ON place_members FOR SELECT TO authenticated
+USING (user_id = auth.uid());
 CREATE POLICY "Members can view place members" ON place_members FOR SELECT TO authenticated
 USING (EXISTS (SELECT 1 FROM place_members pm WHERE pm.place_id = place_members.place_id AND pm.user_id = auth.uid()));
 CREATE POLICY "Users can join places" ON place_members FOR INSERT TO authenticated WITH CHECK (user_id = auth.uid());

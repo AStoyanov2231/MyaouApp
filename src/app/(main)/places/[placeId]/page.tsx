@@ -32,8 +32,12 @@ export default function ChatRoomPage({ params }: { params: Promise<{ placeId: st
   }, [messages]);
 
   const handleJoin = async () => {
-    await fetch(`/api/places/${placeId}/join`, { method: "POST" });
-    setIsMember(true);
+    const res = await fetch(`/api/places/${placeId}/join`, { method: "POST" });
+    if (res.ok) {
+      setIsMember(true);
+    } else {
+      console.error("Failed to join place:", await res.text());
+    }
   };
 
   const handleSend = async (e: React.FormEvent) => {
