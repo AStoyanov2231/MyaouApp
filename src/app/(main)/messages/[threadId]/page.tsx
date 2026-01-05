@@ -57,21 +57,12 @@ export default function DMConversationPage({ params }: { params: Promise<{ threa
           table: "dm_messages",
           filter: `thread_id=eq.${threadId}`,
         },
-        async (payload) => {
+        async () => {
           if (!isMounted) return;
-          const { data: newMessage } = await supabase
-            .from("dm_messages")
-            .select("*, sender:profiles(*)")
-            .eq("id", payload.new.id)
-            .single();
-          if (newMessage && isMounted) {
-            setMessages((prev) => {
-              if (prev.some(m => m.id === newMessage.id)) return prev;
-              return [...prev, newMessage];
-            });
-            // Mark as read since user is viewing
-            fetch(`/api/dm/${threadId}/read`, { method: "POST" });
-          }
+          const res = await fetch(`/api/dm/${threadId}`);
+          const d = await res.json();
+          if (isMounted) setMessages(d.messages || []);
+          fetch(`/api/dm/${threadId}/read`, { method: "POST" });
         }
       )
       .subscribe((status) => {
