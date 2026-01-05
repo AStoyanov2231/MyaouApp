@@ -1,6 +1,6 @@
 "use client";
 import { createClient } from "@/lib/supabase/client";
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import type { User } from "@supabase/supabase-js";
 import type { Profile } from "@/types/database";
 
@@ -11,11 +11,12 @@ export function useAuth() {
   const [user, setUser] = useState<User | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
-  const [profileLoading, setProfileLoading] = useState(false);
+
+  // Track current user ID to avoid unnecessary refetches
+  const currentUserIdRef = useRef<string | null>(null);
 
   const fetchOrCreateProfile = useCallback(async (authUser: User): Promise<Profile | null> => {
     try {
-      // Try to fetch existing profile
       const { data: existingProfile, error: fetchError } = await supabase
         .from("profiles")
         .select("*")
@@ -42,7 +43,6 @@ export function useAuth() {
 
         if (insertError) {
           console.error("Failed to create profile:", insertError);
-          // Try fetching again in case of race condition (another request created it)
           const { data: retryProfile } = await supabase
             .from("profiles")
             .select("*")
@@ -73,11 +73,10 @@ export function useAuth() {
         setUser(authUser);
 
         if (authUser) {
-          setProfileLoading(true);
+          currentUserIdRef.current = authUser.id;
           const fetchedProfile = await fetchOrCreateProfile(authUser);
           if (isMounted) {
             setProfile(fetchedProfile);
-            setProfileLoading(false);
           }
         }
       } catch (error) {
@@ -97,23 +96,28 @@ export function useAuth() {
         if (!isMounted) return;
 
         const authUser = session?.user ?? null;
+
+        // Always update the user state
         setUser(authUser);
 
         if (authUser) {
-          setProfileLoading(true);
-          const fetchedProfile = await fetchOrCreateProfile(authUser);
-          if (isMounted) {
-            setProfile(fetchedProfile);
-            setProfileLoading(false);
+          // Only fetch profile if user actually changed (not just token refresh)
+          if (currentUserIdRef.current !== authUser.id) {
+            currentUserIdRef.current = authUser.id;
+            const fetchedProfile = await fetchOrCreateProfile(authUser);
+            if (isMounted) {
+              setProfile(fetchedProfile);
+            }
           }
         } else {
+          // User signed out
+          currentUserIdRef.current = null;
           setProfile(null);
         }
 
-        // Reset loading on sign out
-        if (event === "SIGNED_OUT") {
+        // Ensure loading is false after any auth event
+        if (isMounted) {
           setLoading(false);
-          setProfileLoading(false);
         }
       }
     );
@@ -124,5 +128,5 @@ export function useAuth() {
     };
   }, [fetchOrCreateProfile]);
 
-  return { user, profile, loading, profileLoading, supabase };
+  return { user, profile, loading, supabase };
 }

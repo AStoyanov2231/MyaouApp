@@ -6,7 +6,7 @@ import { useAuth } from "@/hooks/useAuth";
 import type { Profile } from "@/types/database";
 
 export default function ProfilePage() {
-  const { profile: authProfile, loading: authLoading, profileLoading } = useAuth();
+  const { profile: authProfile, loading: authLoading } = useAuth();
   const [profile, setProfile] = useState<Profile | null>(null);
   const [editing, setEditing] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -36,8 +36,8 @@ export default function ProfilePage() {
     setSaving(false);
   };
 
-  // Show loading only during initial auth check or profile fetch
-  if (authLoading || profileLoading) {
+  // Show loading only during initial auth check
+  if (authLoading) {
     return (
       <div className="flex justify-center items-center h-full">
         <Spinner />
