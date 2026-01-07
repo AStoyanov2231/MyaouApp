@@ -28,10 +28,11 @@ export async function middleware(request: NextRequest) {
   const { data: { user } } = await supabase.auth.getUser();
 
   const isAuthPage = request.nextUrl.pathname.startsWith("/login") ||
-                     request.nextUrl.pathname.startsWith("/signup");
+                     request.nextUrl.pathname.startsWith("/signup") ||
+                     request.nextUrl.pathname.startsWith("/welcome");
 
   if (!user && !isAuthPage && request.nextUrl.pathname !== "/") {
-    return NextResponse.redirect(new URL("/login", request.url));
+    return NextResponse.redirect(new URL("/welcome", request.url));
   }
 
   if (user && isAuthPage) {

@@ -1,6 +1,7 @@
 "use client";
 import { useState } from "react";
 import Link from "next/link";
+import { Mail, AtSign, Lock } from "lucide-react";
 import { Button, Input } from "@/components/ui";
 import { signup } from "../actions";
 
@@ -20,21 +21,59 @@ export default function SignupPage() {
   }
 
   return (
-    <div className="bg-white rounded-xl shadow-lg p-8">
-      <h1 className="text-2xl font-bold text-center mb-6">Create Account</h1>
-      <form onSubmit={handleSubmit} className="space-y-4">
-        <Input name="username" label="Username" required minLength={3} />
-        <Input name="email" type="email" label="Email" required />
-        <Input name="password" type="password" label="Password" required minLength={6} />
-        {error && <p className="text-red-500 text-sm">{error}</p>}
-        <Button type="submit" className="w-full" loading={loading}>
-          Create Account
-        </Button>
-      </form>
-      <p className="text-center mt-4 text-sm text-gray-600">
-        Already have an account?{" "}
-        <Link href="/login" className="text-primary hover:underline">Sign in</Link>
-      </p>
+    <div className="min-h-screen bg-[#f5f0e8] flex items-center justify-center p-4">
+      <div className="w-full max-w-md">
+        {/* Header */}
+        <div className="text-center mb-8">
+          <h1 className="text-3xl md:text-4xl font-bold text-gray-900 mb-2">Sign up</h1>
+          <p className="text-gray-600 text-sm md:text-base">Just a few quick things to get started</p>
+        </div>
+
+        {/* Form */}
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <Input
+            name="email"
+            type="email"
+            placeholder="Email"
+            required
+            icon={<Mail className="w-5 h-5" />}
+            className="border-none"
+          />
+          <Input
+            name="username"
+            placeholder="Username"
+            required
+            minLength={3}
+            icon={<AtSign className="w-5 h-5" />}
+            className="border-none"
+          />
+          <Input
+            name="password"
+            type="password"
+            placeholder="Password"
+            required
+            minLength={6}
+            icon={<Lock className="w-5 h-5" />}
+            className="border-none"
+          />
+          {error && <p className="text-red-500 text-sm">{error}</p>}
+          <Button
+            type="submit"
+            className="w-full !bg-cyan-400 hover:!bg-cyan-300 !text-gray-900 font-semibold py-3.5 text-base"
+            loading={loading}
+          >
+            Create account
+          </Button>
+        </form>
+
+        {/* Footer Link */}
+        <p className="text-center mt-6 text-sm text-gray-700">
+          Already have an account?{" "}
+          <Link href="/login" className="text-indigo-600 font-semibold hover:underline">
+            Log in
+          </Link>
+        </p>
+      </div>
     </div>
   );
 }
