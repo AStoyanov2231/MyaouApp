@@ -35,7 +35,7 @@ export default function WelcomePage() {
           {/* Continue with Apple */}
           <button
             onClick={() => handleOAuthClick("Apple")}
-            className="w-full bg-cyan-400 text-gray-900 font-medium py-3.5 px-6 rounded-xl hover:bg-cyan-300 transition-colors flex items-center justify-center gap-2 shadow-lg"
+            className="w-full bg-cyan-400 text-gray-900 font-medium py-3.5 px-6 rounded-full hover:bg-cyan-300 transition-colors flex items-center justify-center gap-2 shadow-lg"
           >
             <Apple className="w-5 h-5" />
             Continue with Apple
@@ -44,7 +44,7 @@ export default function WelcomePage() {
           {/* Continue with Google */}
           <button
             onClick={() => handleOAuthClick("Google")}
-            className="w-full bg-white text-gray-900 font-medium py-3.5 px-6 rounded-xl hover:bg-gray-100 transition-colors flex items-center justify-center gap-2 shadow-lg"
+            className="w-full bg-white text-gray-900 font-medium py-3.5 px-6 rounded-full hover:bg-gray-100 transition-colors flex items-center justify-center gap-2 shadow-lg"
           >
             <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
               <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
@@ -58,7 +58,7 @@ export default function WelcomePage() {
           {/* Sign up with email */}
           <button
             onClick={() => router.push("/signup")}
-            className="w-full bg-transparent text-white font-medium py-3.5 px-6 rounded-xl border-2 border-white hover:bg-white hover:text-purple-600 transition-colors shadow-lg"
+            className="w-full bg-transparent text-white font-medium py-3.5 px-6 rounded-full border-2 border-white hover:bg-white hover:text-purple-600 transition-colors shadow-lg"
           >
             Sign up with email
           </button>

@@ -9,7 +9,7 @@ type ButtonProps = ButtonHTMLAttributes<HTMLButtonElement> & {
 
 export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
   ({ className = "", variant = "primary", size = "md", loading, children, disabled, ...props }, ref) => {
-    const base = "font-medium rounded-lg transition-colors disabled:opacity-50";
+    const base = "font-medium rounded-full transition-colors disabled:opacity-50";
     const variants = {
       primary: "bg-primary text-white hover:bg-primary-dark",
       secondary: "bg-gray-200 text-gray-900 hover:bg-gray-300",
