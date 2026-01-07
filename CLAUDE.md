@@ -10,6 +10,7 @@ PlaceChat is a location-based chat application where users discover real-world p
 
 - **Frontend**: Next.js 16+ (App Router), React 19, TypeScript, Tailwind CSS
 - **Backend**: Supabase (PostgreSQL, Auth, Realtime, Storage)
+- **Maps**: Leaflet + react-leaflet with OpenStreetMap tiles
 - **Icons**: Lucide React
 - **State**: Zustand
 - **Image Processing**: browser-image-compression
@@ -49,6 +50,7 @@ src/
 │   └── api/             # Backend API routes
 ├── components/
 │   ├── ui/              # Reusable UI components (Button, Input, etc.)
+│   ├── places/          # Places map and overlay components
 │   └── [feature]/       # Feature-specific components
 ├── hooks/               # Custom React hooks (useAuth, useMessages, etc.)
 ├── lib/                 # Utilities and configurations
@@ -68,11 +70,10 @@ src/
 - Server actions in `actions.ts` handle all auth operations
 
 **Protected Routes** (`src/app/(main)/`):
-- `/places` - Discover and search places via Google Places API
-- `/places/[placeId]` - Place-specific chat room
+- `/places` - Interactive map-based place discovery (desktop: map + overlay, mobile: grid)
 - `/messages` - Unified inbox (DMs + place chats)
 - `/messages/[threadId]` - Direct message thread
-- `/messages/place/[placeId]` - Place message view
+- `/messages/place/[placeId]` - Place chat room (users join directly from places map)
 - `/friends` - Friend requests and friend list
 - `/profile` - Current user profile
 - `/profile/[userId]` - View other user profiles
@@ -87,16 +88,25 @@ src/
 
 ### Data Flow Patterns
 
-**1. Place Discovery Flow:**
+**1. Place Discovery Flow (Map-Based):**
 ```
-User searches → API route → Check cache → Google Places API → Cache result → Return to client
+Desktop: User views interactive Leaflet map → Searches place in overlay →
+Results update map markers and list → Click place → View details in overlay →
+Click "Join Place" → API creates place_member → Redirect to chat
+
+Mobile: User views grid → Searches places → Click place card →
+API creates place_member → Redirect to chat
+
+Search: API route → Check cache → Google Places API → Cache result → Return to client
+Map: Leaflet centers on selected place with smooth animation (flyTo)
 ```
 
 **2. Place Chat Flow:**
 ```
-User joins place → API creates place_member → User views place chat →
-useMessages hook fetches history → Subscribes to Realtime updates →
-User sends message → API route → Supabase insert → Realtime broadcasts to all members
+User joins directly from map/grid → API creates place_member →
+Redirects to /messages/place/[placeId] → useMessages hook fetches history →
+Subscribes to Realtime updates → User sends message → API route →
+Supabase insert → Realtime broadcasts to all members
 ```
 
 **3. Friend System Flow:**
@@ -234,6 +244,44 @@ Friendship
 - Sizes: sm, md, lg
 - Loading state support
 
+### Places Map Components (`src/components/places/`)
+
+**MapContainer.tsx:**
+- Wrapper component with Next.js dynamic import (ssr: false)
+- Leaflet requires browser window object, so SSR is disabled
+- Shows loading skeleton while map initializes
+- Props: places, center, zoom, selectedPlace, onMarkerClick
+
+**MapView.tsx:**
+- Actual Leaflet MapContainer with OpenStreetMap TileLayer
+- RecenterMap component handles smooth map recentering (flyTo animation)
+- Renders markers for each place with coordinates
+- Selected place gets larger marker icon
+- Click marker to trigger place selection
+
+**FloatingOverlay.tsx:**
+- Glassmorphic overlay (bg-white/90 backdrop-blur-lg)
+- Positioned absolutely over map (top-6 left-6)
+- Switches between SearchView and DetailsView based on mode
+- Smooth transitions with CSS
+
+**SearchView.tsx:**
+- Search input with purple icon (#6867B0)
+- Scrollable results list with hover effects
+- Loading and empty states
+- Click result to show place details
+
+**DetailsView.tsx:**
+- Shows place photo, name, address, stats
+- Back button returns to search
+- "Join Place" button calls API and redirects to chat
+- Loading states and error handling
+
+**PlaceCard.tsx:**
+- Reusable card for mobile grid view
+- Click to join place directly
+- Shows loading state during API call
+
 ### API Design Patterns
 
 **RESTful Routes**:
@@ -280,6 +328,18 @@ RootLayout (src/app/layout.tsx)
 - Composed from shared UI components
 - Handle business logic and data fetching
 
+**Places Page Architecture** (`src/app/(main)/places/page.tsx`):
+- **Desktop (md: breakpoint)**: Interactive Leaflet map with floating overlay
+  - Map fills viewport height, displays markers for all places
+  - Floating overlay shows search or place details
+  - Geolocation centers map on user's location (fallback to San Francisco)
+  - Map recenters when place is selected
+- **Mobile (<md)**: Grid layout with PlaceCard components
+  - Traditional search and grid view
+  - No map on mobile for better usability
+- **State Management**: Local useState for selectedPlace, overlayMode, mapCenter
+- **Direct Join Flow**: Clicking place calls `/api/places/[id]/join` then redirects to chat
+
 ## Key Patterns
 
 ### Google Places Caching
@@ -297,6 +357,29 @@ All tables have RLS enabled. Key policies:
 ### Image Compression
 
 Client-side compression via `src/lib/image-compression.ts` before upload. Max 500KB, 1920px max dimension. Thumbnails generated at 50KB/300px.
+
+### Leaflet Map Integration
+
+**Setup Requirements:**
+- Packages: `leaflet`, `react-leaflet`, `@types/leaflet`
+- Leaflet CSS imported in `src/app/globals.css`
+- Marker assets in `public/leaflet/` (marker-icon.png, marker-icon-2x.png, marker-shadow.png)
+
+**SSR Handling:**
+- Leaflet requires browser window object
+- Use Next.js dynamic import with `ssr: false` in MapContainer component
+- Show loading skeleton during map initialization
+
+**Icon Configuration:**
+- Fix default marker icon paths (Webpack bundling breaks default paths)
+- Delete default `_getIconUrl` and merge custom options pointing to public folder
+- Custom selected marker icon with larger size (30x48)
+
+**Map Features:**
+- OpenStreetMap tiles (free, no API key required)
+- Smooth recentering with `map.flyTo()` animation
+- Zoom level 15 for place details, 13 for general view
+- Geolocation API for user location with fallback
 
 ## Environment Variables
 

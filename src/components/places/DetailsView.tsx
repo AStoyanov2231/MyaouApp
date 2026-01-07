@@ -1,4 +1,6 @@
-import Link from "next/link";
+"use client";
+import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { ArrowLeft, MapPin, Users, MessageSquare } from "lucide-react";
 import { Place } from "@/types/database";
 import { Button } from "@/components/ui";
@@ -9,6 +11,31 @@ type DetailsViewProps = {
 };
 
 export function DetailsView({ place, onBack }: DetailsViewProps) {
+  const router = useRouter();
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+
+  const handleJoinPlace = async () => {
+    try {
+      setLoading(true);
+      setError("");
+
+      const response = await fetch(`/api/places/${place.id}/join`, {
+        method: "POST",
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to join place");
+      }
+
+      // Redirect to messages view for this place
+      router.push(`/messages/place/${place.id}`);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to join place");
+      setLoading(false);
+    }
+  };
+
   return (
     <div className="p-4 space-y-4">
       {/* Back Button */}
@@ -55,12 +82,21 @@ export function DetailsView({ place, onBack }: DetailsViewProps) {
         )}
       </div>
 
+      {/* Error Message */}
+      {error && (
+        <div className="text-red-500 text-sm bg-red-50 border border-red-200 rounded-lg p-3">
+          {error}
+        </div>
+      )}
+
       {/* Join Button */}
-      <Link href={`/places/${place.id}`} className="block">
-        <Button className="w-full !bg-cyan-400 hover:!bg-cyan-500 !text-gray-900 font-semibold">
-          Join Place
-        </Button>
-      </Link>
+      <Button
+        onClick={handleJoinPlace}
+        loading={loading}
+        className="w-full !bg-cyan-400 hover:!bg-cyan-500 !text-gray-900 font-semibold"
+      >
+        Join Place
+      </Button>
     </div>
   );
 }
