@@ -55,7 +55,16 @@ export default function SignupPage() {
             icon={<Lock className="w-5 h-5" />}
             className="border-none"
           />
-          {error && <p className="text-red-500 text-sm">{error}</p>}
+          {error && (
+            <div className="text-red-500 text-sm bg-red-50 border border-red-200 rounded-lg p-3">
+              {error}
+              {error.includes("already registered") && (
+                <Link href="/login" className="block mt-2 text-indigo-600 font-semibold hover:underline">
+                  Go to login page →
+                </Link>
+              )}
+            </div>
+          )}
           <Button
             type="submit"
             className="w-full !bg-cyan-400 hover:!bg-cyan-300 !text-gray-900 font-semibold py-3.5 text-base"

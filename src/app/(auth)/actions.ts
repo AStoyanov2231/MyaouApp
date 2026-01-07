@@ -39,6 +39,17 @@ export async function signup(formData: FormData) {
   const password = formData.get("password") as string;
   const username = formData.get("username") as string;
 
+  // Check if username is already taken
+  const { data: existingUsername } = await supabase
+    .from("profiles")
+    .select("id")
+    .eq("username", username)
+    .single();
+
+  if (existingUsername) {
+    return { error: "Username is already taken. Please choose another one." };
+  }
+
   // Use the correct app URL for email confirmation redirect
   const appUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
 
@@ -50,21 +61,34 @@ export async function signup(formData: FormData) {
       emailRedirectTo: `${appUrl}/auth/callback`,
     },
   });
-  if (error) return { error: error.message };
+
+  if (error) {
+    // Provide user-friendly error messages
+    if (error.message.includes("already registered") || error.message.includes("User already registered")) {
+      return { error: "This email is already registered. Please log in instead." };
+    }
+    return { error: error.message };
+  }
+
+  // Check if signup actually created a user (email confirmation may be enabled)
+  if (!data.user) {
+    return { error: "Signup failed. Please try again." };
+  }
 
   // Explicitly create profile using service client (bypasses RLS)
-  if (data.user) {
-    const serviceClient = await createServiceClient();
-    const { error: profileError } = await serviceClient.from("profiles").insert({
-      id: data.user.id,
-      username,
-      display_name: null,
-      avatar_url: null,
-    });
+  const serviceClient = await createServiceClient();
+  const { error: profileError } = await serviceClient.from("profiles").insert({
+    id: data.user.id,
+    username,
+    display_name: null,
+    avatar_url: null,
+  });
 
-    if (profileError) {
-      console.error("Failed to create profile:", profileError);
-    }
+  if (profileError) {
+    console.error("Failed to create profile:", profileError);
+    // If profile creation fails, we should handle it but still proceed
+    // The user is created in auth, profile will be created on login if missing
+    return { error: "Account created but profile setup failed. Please try logging in." };
   }
 
   redirect("/places");
