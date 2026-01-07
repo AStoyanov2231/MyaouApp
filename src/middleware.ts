@@ -31,11 +31,11 @@ export async function middleware(request: NextRequest) {
                      request.nextUrl.pathname.startsWith("/signup") ||
                      request.nextUrl.pathname.startsWith("/welcome");
 
-  if (!user && !isAuthPage && request.nextUrl.pathname !== "/") {
+  if (!user && !isAuthPage) {
     return NextResponse.redirect(new URL("/welcome", request.url));
   }
 
-  if (user && isAuthPage) {
+  if (user && (isAuthPage || request.nextUrl.pathname === "/")) {
     return NextResponse.redirect(new URL("/places", request.url));
   }
 
