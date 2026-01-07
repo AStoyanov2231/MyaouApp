@@ -10,7 +10,7 @@ export default function WelcomePage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-indigo-500 via-purple-500 to-purple-600 flex items-center justify-center p-4 relative overflow-hidden">
+    <div className="min-h-screen bg-[#6867B0] flex items-center justify-center p-4 relative overflow-hidden">
       {/* Decorative Circles */}
       <div className="absolute top-32 left-1/2 -translate-x-16">
         <div className="relative">
@@ -27,11 +27,8 @@ export default function WelcomePage() {
       <div className="w-full max-w-sm z-10 text-center px-6">
         {/* Branding */}
         <h1 className="text-4xl md:text-5xl font-bold text-white mb-4">
-          Make mymories
+          Myaou
         </h1>
-        <p className="text-white text-base md:text-lg mb-12 opacity-90">
-          Record, recall and share your favorite mymories anytime.
-        </p>
 
         {/* Action Buttons */}
         <div className="space-y-4">

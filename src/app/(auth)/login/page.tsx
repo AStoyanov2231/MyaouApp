@@ -21,12 +21,11 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-cyan-300 via-teal-300 to-cyan-400 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-[#6867B0] flex items-center justify-center p-4">
       <div className="w-full max-w-md">
         {/* Header */}
         <div className="text-center mb-8">
-          <h1 className="text-3xl md:text-4xl font-bold text-gray-900 mb-2">Login</h1>
-          <p className="text-gray-700 text-sm md:text-base">Hello, welcome back</p>
+          <h1 className="text-3xl md:text-4xl font-bold text-white mb-2">Login</h1>
         </div>
 
         {/* Form */}
@@ -50,7 +49,7 @@ export default function LoginPage() {
           {error && <p className="text-red-500 text-sm">{error}</p>}
           <Button
             type="submit"
-            className="w-full !bg-indigo-600 hover:!bg-indigo-700 !text-white font-semibold py-3.5 text-base"
+            className="w-full !bg-cyan-400 hover:!bg-cyan-300 !text-gray-900 font-semibold py-3.5 text-base"
             loading={loading}
           >
             Log in
@@ -58,9 +57,9 @@ export default function LoginPage() {
         </form>
 
         {/* Footer Link */}
-        <p className="text-center mt-6 text-sm text-gray-800">
+        <p className="text-center mt-6 text-sm text-white">
           Don&apos;t have an account?{" "}
-          <Link href="/signup" className="text-indigo-600 font-semibold hover:underline">
+          <Link href="/signup" className="text-white font-semibold hover:underline">
             Sign Up
           </Link>
         </p>

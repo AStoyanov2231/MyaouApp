@@ -21,12 +21,11 @@ export default function SignupPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#f5f0e8] flex items-center justify-center p-4">
+    <div className="min-h-screen bg-[#6867B0] flex items-center justify-center p-4">
       <div className="w-full max-w-md">
         {/* Header */}
         <div className="text-center mb-8">
-          <h1 className="text-3xl md:text-4xl font-bold text-gray-900 mb-2">Sign up</h1>
-          <p className="text-gray-600 text-sm md:text-base">Just a few quick things to get started</p>
+          <h1 className="text-3xl md:text-4xl font-bold text-white mb-2">Sign up</h1>
         </div>
 
         {/* Form */}
@@ -67,9 +66,9 @@ export default function SignupPage() {
         </form>
 
         {/* Footer Link */}
-        <p className="text-center mt-6 text-sm text-gray-700">
+        <p className="text-center mt-6 text-sm text-white">
           Already have an account?{" "}
-          <Link href="/login" className="text-indigo-600 font-semibold hover:underline">
+          <Link href="/login" className="text-white font-semibold hover:underline">
             Log in
           </Link>
         </p>
