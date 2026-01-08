@@ -2,36 +2,49 @@
 import { useEffect, useState } from "react";
 import { Search } from "lucide-react";
 import { Input, Spinner } from "@/components/ui";
-import { usePlaces } from "@/hooks/usePlaces";
+import { usePlacesAutocomplete } from "@/hooks/usePlacesAutocomplete";
 import { Place } from "@/types/database";
+import { AutocompletePrediction } from "@/types/google-places";
 import { MapContainer } from "@/components/places/MapContainer";
 import { FloatingOverlay } from "@/components/places/FloatingOverlay";
 import { PlaceCard } from "@/components/places/PlaceCard";
 
 export default function PlacesPage() {
-  const { places, loading, search, fetchPopular } = usePlaces();
+  const { suggestions, loading, detailsLoading, fetchSuggestions, fetchPlaceDetails, resetSession } = usePlacesAutocomplete();
   const [query, setQuery] = useState("");
   const [selectedPlace, setSelectedPlace] = useState<Place | null>(null);
-  const [overlayMode, setOverlayMode] = useState<"search" | "details">("search");
+  const [overlayMode, setOverlayMode] = useState<"search" | "loading" | "details">("search");
   const [mapCenter, setMapCenter] = useState<[number, number]>([37.7749, -122.4194]);
   const [userLocation, setUserLocation] = useState<[number, number] | null>(null);
+  const [popularPlaces, setPopularPlaces] = useState<Place[]>([]);
+  const [popularLoading, setPopularLoading] = useState(false);
 
   // Fetch popular places on mount
   useEffect(() => {
+    const fetchPopular = async () => {
+      setPopularLoading(true);
+      try {
+        const response = await fetch("/api/places/popular");
+        const data = await response.json();
+        setPopularPlaces(data.places || []);
+      } catch (error) {
+        console.error("Failed to fetch popular places:", error);
+      } finally {
+        setPopularLoading(false);
+      }
+    };
     fetchPopular();
-  }, [fetchPopular]);
+  }, []);
 
-  // Debounced search
+  // Debounced autocomplete
   useEffect(() => {
     const timer = setTimeout(() => {
       if (query.length >= 2) {
-        search(query, userLocation?.[0], userLocation?.[1]);
-      } else if (query.length === 0) {
-        fetchPopular();
+        fetchSuggestions(query, userLocation?.[0], userLocation?.[1]);
       }
     }, 300);
     return () => clearTimeout(timer);
-  }, [query, search, fetchPopular, userLocation]);
+  }, [query, fetchSuggestions, userLocation]);
 
   // Request geolocation on mount
   useEffect(() => {
@@ -53,6 +66,22 @@ export default function PlacesPage() {
     }
   }, []);
 
+  const handleSuggestionClick = async (prediction: AutocompletePrediction) => {
+    setOverlayMode("loading");
+    const place = await fetchPlaceDetails(prediction.place_id);
+    if (place) {
+      setSelectedPlace(place);
+      setOverlayMode("details");
+      // Center map on selected place
+      if (place.latitude && place.longitude) {
+        setMapCenter([place.latitude, place.longitude]);
+      }
+    } else {
+      // Error fetching details, go back to search
+      setOverlayMode("search");
+    }
+  };
+
   const handlePlaceSelect = (place: Place) => {
     setSelectedPlace(place);
     setOverlayMode("details");
@@ -65,14 +94,18 @@ export default function PlacesPage() {
   const handleBack = () => {
     setSelectedPlace(null);
     setOverlayMode("search");
+    resetSession();
   };
+
+  // Determine which places to show on map (popular places when no query)
+  const displayPlaces = query.length < 2 ? popularPlaces : [];
 
   return (
     <>
       {/* Desktop View: Map + Overlay */}
       <div className="hidden md:flex md:flex-1 relative h-screen">
         <MapContainer
-          places={places}
+          places={displayPlaces}
           center={mapCenter}
           zoom={13}
           selectedPlace={selectedPlace}
@@ -83,9 +116,9 @@ export default function PlacesPage() {
           selectedPlace={selectedPlace}
           query={query}
           onQueryChange={setQuery}
-          places={places}
+          suggestions={suggestions}
           loading={loading}
-          onPlaceSelect={handlePlaceSelect}
+          onSuggestionClick={handleSuggestionClick}
           onBack={handleBack}
         />
       </div>
@@ -103,20 +136,48 @@ export default function PlacesPage() {
           />
         </div>
 
-        {loading && (
+        {(popularLoading || loading) && (
           <div className="flex justify-center py-8">
             <Spinner />
           </div>
         )}
 
-        <div className="grid gap-4 sm:grid-cols-2">
-          {places.map((place) => (
-            <PlaceCard key={place.id} place={place} />
-          ))}
-        </div>
+        {/* Show autocomplete suggestions when typing */}
+        {query.length >= 2 && suggestions.length > 0 && (
+          <div className="space-y-2 mb-4">
+            {suggestions.map((suggestion) => (
+              <button
+                key={suggestion.place_id}
+                onClick={async () => {
+                  const place = await fetchPlaceDetails(suggestion.place_id);
+                  if (place) {
+                    handlePlaceSelect(place);
+                  }
+                }}
+                className="w-full p-3 text-left border rounded-lg hover:bg-gray-50 transition-colors"
+              >
+                <p className="font-semibold text-sm">{suggestion.structured_formatting.main_text}</p>
+                <p className="text-xs text-gray-500">{suggestion.structured_formatting.secondary_text}</p>
+              </button>
+            ))}
+          </div>
+        )}
 
-        {!loading && places.length === 0 && (
-          <p className="text-center text-gray-500 py-8">No places found</p>
+        {/* Show popular places when no query */}
+        {query.length < 2 && (
+          <div className="grid gap-4 sm:grid-cols-2">
+            {popularPlaces.map((place) => (
+              <PlaceCard key={place.id} place={place} />
+            ))}
+          </div>
+        )}
+
+        {!loading && !popularLoading && query.length >= 2 && suggestions.length === 0 && (
+          <p className="text-center text-gray-500 py-8">No suggestions found</p>
+        )}
+
+        {!popularLoading && query.length < 2 && popularPlaces.length === 0 && (
+          <p className="text-center text-gray-500 py-8">No popular places available</p>
         )}
       </div>
     </>
