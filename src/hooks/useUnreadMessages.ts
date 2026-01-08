@@ -4,10 +4,14 @@ import { createClient } from "@/lib/supabase/client";
 
 const supabase = createClient();
 
+// Throttle visibility change refetches to once per 30 seconds
+const VISIBILITY_THROTTLE_MS = 30000;
+
 export function useUnreadMessages() {
   const [unreadCount, setUnreadCount] = useState(0);
   const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
   const debounceRef = useRef<NodeJS.Timeout | null>(null);
+  const lastVisibilityFetchRef = useRef<number>(0);
 
   const fetchUnreadCount = useCallback(async () => {
     try {
@@ -72,10 +76,15 @@ export function useUnreadMessages() {
     };
 
     // Handle visibility changes (mobile background/foreground)
+    // Throttled to prevent excessive API calls when rapidly switching tabs
     const handleVisibilityChange = () => {
       if (document.visibilityState === "visible" && isMounted) {
-        fetchUnreadCount(); // Refresh count on return
-        setupChannel(); // Reconnect realtime
+        const now = Date.now();
+        if (now - lastVisibilityFetchRef.current > VISIBILITY_THROTTLE_MS) {
+          lastVisibilityFetchRef.current = now;
+          fetchUnreadCount(); // Refresh count on return
+        }
+        setupChannel(); // Reconnect realtime (always reconnect)
       }
     };
 

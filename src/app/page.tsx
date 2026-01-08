@@ -1,10 +1,9 @@
 import { redirect } from "next/navigation";
-import { createClient } from "@/lib/supabase/server";
 
+// Middleware handles auth redirects for "/" route:
+// - Authenticated users -> /places
+// - Unauthenticated users -> /welcome
+// This page should rarely render, but defaults to /places as fallback
 export default async function Home() {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-
-  if (user) redirect("/places");
-  redirect("/login");
+  redirect("/places");
 }
