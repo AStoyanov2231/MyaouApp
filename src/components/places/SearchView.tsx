@@ -62,8 +62,6 @@ export function SearchView({
                 <div className="w-16 h-16 mx-auto mb-4 rounded-full gradient-brand-subtle flex items-center justify-center">
                   <Search className="h-8 w-8 text-muted-foreground" strokeWidth={1.5} />
                 </div>
-                <p className="text-muted-foreground text-sm font-medium">No suggestions found</p>
-                <p className="text-muted-foreground/60 text-xs mt-1">Try a different search term</p>
               </div>
             ) : (
               suggestions.map((suggestion, index) => (
