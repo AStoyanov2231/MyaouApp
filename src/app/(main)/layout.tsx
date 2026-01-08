@@ -16,7 +16,7 @@ export default async function MainLayout({ children }: { children: React.ReactNo
     .single();
 
   return (
-    <div className="min-h-screen bg-gray-50 flex">
+    <div className="min-h-screen bg-muted flex">
       <Sidebar profile={profile} />
       <main className="flex-1 pb-16 md:pb-0">{children}</main>
       <MobileNav />

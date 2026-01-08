@@ -29,7 +29,7 @@ export function MobileNav() {
           )}
         >
           <div className="relative">
-            <Icon size={20} />
+            <Icon className="h-5 w-5" />
             {href === "/messages" && unreadCount > 0 && (
               <Badge className="absolute -top-1 -right-2 h-4 min-w-[16px] px-1 flex items-center justify-center rounded-full text-[10px] bg-destructive">
                 {unreadCount > 9 ? "9+" : unreadCount}

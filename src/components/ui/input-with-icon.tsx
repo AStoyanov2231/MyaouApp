@@ -29,7 +29,7 @@ const InputWithIcon = React.forwardRef<HTMLInputElement, InputWithIconProps>(
             ref={ref}
             className={cn(
               icon && "pl-10",
-              "h-12 rounded-xl bg-white shadow-md",
+              "h-12 rounded-xl bg-background shadow-md",
               error && "border-destructive",
               className
             )}

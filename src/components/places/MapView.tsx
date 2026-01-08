@@ -82,7 +82,7 @@ export default function MapView({
             <div className="text-sm">
               <h4 className="font-semibold mb-1">{place.name}</h4>
               {place.formatted_address && (
-                <p className="text-gray-600 text-xs">{place.formatted_address}</p>
+                <p className="text-muted-foreground text-xs">{place.formatted_address}</p>
               )}
             </div>
           </Popup>

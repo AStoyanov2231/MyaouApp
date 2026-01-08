@@ -128,7 +128,7 @@ export default function PlacesPage() {
       <div className="md:hidden p-4 max-w-4xl mx-auto">
         <h1 className="text-2xl font-bold mb-4">Discover Places</h1>
         <div className="relative mb-6">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" size={20} />
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground h-5 w-5" />
           <Input
             value={query}
             onChange={(e) => setQuery(e.target.value)}

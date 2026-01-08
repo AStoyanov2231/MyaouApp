@@ -68,7 +68,7 @@ export default function ProfilePage() {
   if (!profile) {
     return (
       <div className="flex flex-col justify-center items-center h-full gap-4">
-        <AlertCircle className="text-destructive" size={48} />
+        <AlertCircle className="text-destructive h-12 w-12" />
         <p className="text-muted-foreground">Failed to load profile</p>
         <Button onClick={() => window.location.reload()}>Retry</Button>
       </div>
@@ -87,7 +87,7 @@ export default function ProfilePage() {
               </AvatarFallback>
             </Avatar>
             <button className="absolute bottom-0 right-0 bg-primary text-primary-foreground p-1 rounded-full">
-              <Camera size={14} />
+              <Camera className="h-4 w-4" />
             </button>
           </div>
           <div className="flex-1">
@@ -95,7 +95,7 @@ export default function ProfilePage() {
             <p className="text-muted-foreground">@{profile.username}</p>
             {profile.location_text && (
               <p className="text-sm text-muted-foreground flex items-center gap-1 mt-1">
-                <MapPin size={14} /> {profile.location_text}
+                <MapPin className="h-4 w-4" /> {profile.location_text}
               </p>
             )}
           </div>
@@ -135,7 +135,7 @@ export default function ProfilePage() {
               />
             </div>
             <Button onClick={handleSave} disabled={saving}>
-              {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : "Save Changes"}
+              {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : "Save Changes"}
             </Button>
           </div>
         ) : (

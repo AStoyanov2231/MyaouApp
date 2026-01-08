@@ -67,7 +67,7 @@ export default function PlaceChatPage({ params }: { params: Promise<{ placeId: s
         <div className="flex-1">
           <h1 className="font-semibold">{place.name}</h1>
           <p className="text-sm text-muted-foreground flex items-center gap-1">
-            <Users size={14} /> {place.member_count} members
+            <Users className="h-4 w-4" /> {place.member_count} members
           </p>
         </div>
       </header>
@@ -119,7 +119,7 @@ export default function PlaceChatPage({ params }: { params: Promise<{ placeId: s
       <form onSubmit={handleSend} className="bg-card border-t p-4 flex gap-2">
         <Input value={input} onChange={(e) => setInput(e.target.value)} placeholder="Type a message..." className="flex-1 h-10" />
         <Button type="submit" disabled={!input.trim() || sending}>
-          {sending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send size={18} />}
+          {sending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-5 w-5" />}
         </Button>
       </form>
     </div>

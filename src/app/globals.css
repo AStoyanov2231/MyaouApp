@@ -172,3 +172,25 @@ body {
     @apply bg-background text-foreground;
   }
 }
+
+@layer utilities {
+  .gradient-brand {
+    @apply bg-gradient-to-r from-primary to-accent;
+  }
+
+  .gradient-brand-vertical {
+    @apply bg-gradient-to-b from-primary to-accent;
+  }
+
+  .gradient-brand-text {
+    @apply bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent;
+  }
+
+  .gradient-brand-border {
+    @apply bg-gradient-to-br from-primary via-accent to-primary;
+  }
+
+  .gradient-brand-subtle {
+    @apply bg-gradient-to-br from-primary/10 to-accent/10;
+  }
+}

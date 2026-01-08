@@ -75,7 +75,7 @@ export default function UserProfilePage({ params }: { params: Promise<{ userId: 
             <p className="text-muted-foreground">@{profile.username}</p>
             {profile.location_text && (
               <p className="text-sm text-muted-foreground flex items-center gap-1 mt-1">
-                <MapPin size={14} /> {profile.location_text}
+                <MapPin className="h-4 w-4" /> {profile.location_text}
               </p>
             )}
           </div>
@@ -83,15 +83,15 @@ export default function UserProfilePage({ params }: { params: Promise<{ userId: 
             <div>
               {isFriend ? (
                 <Button variant="secondary" size="sm" disabled>
-                  <Check size={16} className="mr-1" /> Friends
+                  <Check className="h-4 w-4 mr-1" /> Friends
                 </Button>
               ) : isPending ? (
                 <Button variant="secondary" size="sm" disabled>
-                  <Clock size={16} className="mr-1" /> Pending
+                  <Clock className="h-4 w-4 mr-1" /> Pending
                 </Button>
               ) : (
                 <Button size="sm" onClick={handleFriendRequest}>
-                  <UserPlus size={16} className="mr-1" /> Add Friend
+                  <UserPlus className="h-4 w-4 mr-1" /> Add Friend
                 </Button>
               )}
             </div>

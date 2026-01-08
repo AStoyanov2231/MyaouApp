@@ -87,7 +87,7 @@ export default function FriendsPage() {
                   </div>
                   <Link href={`/messages?user=${friend.id}`}>
                     <Button variant="ghost" size="sm">
-                      <MessageCircle size={18} />
+                      <MessageCircle className="h-5 w-5" />
                     </Button>
                   </Link>
                 </Card>
@@ -115,10 +115,10 @@ export default function FriendsPage() {
                   </div>
                   <div className="flex gap-2">
                     <Button size="sm" onClick={() => handleRequest(req.id, "accepted")}>
-                      <Check size={16} />
+                      <Check className="h-4 w-4" />
                     </Button>
                     <Button variant="secondary" size="sm" onClick={() => handleRequest(req.id, "blocked")}>
-                      <X size={16} />
+                      <X className="h-4 w-4" />
                     </Button>
                   </div>
                 </Card>

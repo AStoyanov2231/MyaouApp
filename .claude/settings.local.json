@@ -22,7 +22,10 @@
       "Skill(frontend-design)",
       "Bash(npx shadcn@latest init --force --defaults)",
       "Bash(npx shadcn@latest add:*)",
-      "Bash(findstr:*)"
+      "Bash(findstr:*)",
+      "Bash(npx tsc:*)",
+      "Bash(npx next build:*)",
+      "Bash(npm run lint:*)"
     ]
   }
 }
