@@ -2,10 +2,17 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { MapPin, MessageCircle, Users, User, LogOut } from "lucide-react";
-import { Avatar } from "@/components/ui";
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { cn } from "@/lib/utils";
 import type { Profile } from "@/types/database";
 import { signOut } from "@/app/(auth)/actions";
 import { useUnreadMessages } from "@/hooks/useUnreadMessages";
+
+function getInitials(name: string) {
+  return name.slice(0, 2).toUpperCase();
+}
 
 const navItems = [
   { href: "/places", icon: MapPin, label: "Places" },
@@ -19,7 +26,7 @@ export function Sidebar({ profile }: { profile: Profile | null }) {
   const { unreadCount } = useUnreadMessages();
 
   return (
-    <aside className="hidden md:flex flex-col w-64 bg-white border-r h-screen sticky top-0">
+    <aside className="hidden md:flex flex-col w-64 bg-card border-r h-screen sticky top-0">
       <div className="p-4 border-b">
         <h1 className="text-xl font-bold text-primary">PlaceChat</h1>
       </div>
@@ -28,18 +35,19 @@ export function Sidebar({ profile }: { profile: Profile | null }) {
           <Link
             key={href}
             href={href}
-            className={`flex items-center gap-3 px-4 py-2 rounded-lg transition-colors ${
+            className={cn(
+              "flex items-center gap-3 px-4 py-2 rounded-lg transition-colors",
               pathname.startsWith(href)
-                ? "bg-primary text-white"
-                : "hover:bg-gray-100"
-            }`}
+                ? "bg-primary text-primary-foreground"
+                : "hover:bg-accent"
+            )}
           >
             <div className="relative">
               <Icon size={20} />
               {href === "/messages" && unreadCount > 0 && (
-                <span className="absolute -top-1 -right-2 bg-red-500 text-white text-[10px] min-w-[16px] h-4 px-1 rounded-full flex items-center justify-center">
+                <Badge className="absolute -top-1 -right-2 h-4 min-w-[16px] px-1 flex items-center justify-center rounded-full text-[10px] bg-destructive">
                   {unreadCount > 9 ? "9+" : unreadCount}
-                </span>
+                </Badge>
               )}
             </div>
             {label}
@@ -48,16 +56,21 @@ export function Sidebar({ profile }: { profile: Profile | null }) {
       </nav>
       <div className="p-4 border-t">
         <div className="flex items-center gap-3 mb-3">
-          <Avatar src={profile?.avatar_url} name={profile?.display_name || profile?.username} size="sm" />
+          <Avatar className="h-8 w-8">
+            <AvatarImage src={profile?.avatar_url || undefined} alt={profile?.display_name || profile?.username} />
+            <AvatarFallback className="bg-primary text-primary-foreground text-sm">
+              {getInitials(profile?.display_name || profile?.username || "?")}
+            </AvatarFallback>
+          </Avatar>
           <div className="flex-1 min-w-0">
             <p className="font-medium truncate">{profile?.display_name || profile?.username}</p>
-            <p className="text-sm text-gray-500 truncate">@{profile?.username}</p>
+            <p className="text-sm text-muted-foreground truncate">@{profile?.username}</p>
           </div>
         </div>
         <form action={signOut}>
-          <button className="w-full flex items-center gap-2 px-4 py-2 text-sm text-gray-600 hover:bg-gray-100 rounded-lg">
+          <Button variant="ghost" className="w-full justify-start" size="sm">
             <LogOut size={16} /> Sign out
-          </button>
+          </Button>
         </form>
       </div>
     </aside>

@@ -1,34 +1,22 @@
-"use client";
-import { InputHTMLAttributes, forwardRef, ReactNode } from "react";
+import * as React from "react"
 
-type InputProps = InputHTMLAttributes<HTMLInputElement> & {
-  label?: string;
-  error?: string;
-  icon?: ReactNode;
-};
+import { cn } from "@/lib/utils"
 
-export const Input = forwardRef<HTMLInputElement, InputProps>(
-  ({ className = "", label, error, icon, ...props }, ref) => {
+const Input = React.forwardRef<HTMLInputElement, React.ComponentProps<"input">>(
+  ({ className, type, ...props }, ref) => {
     return (
-      <div className="w-full">
-        {label && <label className="block text-sm font-medium mb-1">{label}</label>}
-        <div className="relative">
-          {icon && (
-            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500">
-              {icon}
-            </span>
-          )}
-          <input
-            ref={ref}
-            className={`w-full ${icon ? "pl-10" : ""} px-4 py-3 border rounded-xl focus:outline-none focus:ring-2 focus:ring-primary bg-white shadow-md ${
-              error ? "border-red-500" : "border-gray-300"
-            } ${className}`}
-            {...props}
-          />
-        </div>
-        {error && <p className="text-red-500 text-sm mt-1">{error}</p>}
-      </div>
-    );
+      <input
+        type={type}
+        className={cn(
+          "flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-base shadow-sm transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium file:text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50 md:text-sm",
+          className
+        )}
+        ref={ref}
+        {...props}
+      />
+    )
   }
-);
-Input.displayName = "Input";
+)
+Input.displayName = "Input"
+
+export { Input }

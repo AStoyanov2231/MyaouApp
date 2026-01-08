@@ -139,5 +139,5 @@ export function useAuth() {
     };
   }, [fetchOrCreateProfile]);
 
-  return { user, profile, loading, supabase };
+  return { user, profile, loading };
 }

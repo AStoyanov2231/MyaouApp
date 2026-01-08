@@ -1,7 +1,8 @@
 "use client";
 import { useEffect, useState } from "react";
-import { Search } from "lucide-react";
-import { Input, Spinner } from "@/components/ui";
+import { Search, Loader2 } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
 import { usePlacesAutocomplete } from "@/hooks/usePlacesAutocomplete";
 import { Place } from "@/types/database";
 import { AutocompletePrediction } from "@/types/google-places";
@@ -10,7 +11,7 @@ import { FloatingOverlay } from "@/components/places/FloatingOverlay";
 import { PlaceCard } from "@/components/places/PlaceCard";
 
 export default function PlacesPage() {
-  const { suggestions, loading, detailsLoading, fetchSuggestions, fetchPlaceDetails, resetSession } = usePlacesAutocomplete();
+  const { suggestions, loading, fetchSuggestions, fetchPlaceDetails, resetSession } = usePlacesAutocomplete();
   const [query, setQuery] = useState("");
   const [selectedPlace, setSelectedPlace] = useState<Place | null>(null);
   const [overlayMode, setOverlayMode] = useState<"search" | "loading" | "details">("search");
@@ -127,18 +128,18 @@ export default function PlacesPage() {
       <div className="md:hidden p-4 max-w-4xl mx-auto">
         <h1 className="text-2xl font-bold mb-4">Discover Places</h1>
         <div className="relative mb-6">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" size={20} />
           <Input
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder="Search for places..."
-            className="pl-10"
+            className="pl-10 h-10"
           />
         </div>
 
         {(popularLoading || loading) && (
           <div className="flex justify-center py-8">
-            <Spinner />
+            <Loader2 className="h-8 w-8 animate-spin text-primary" />
           </div>
         )}
 
@@ -146,19 +147,20 @@ export default function PlacesPage() {
         {query.length >= 2 && suggestions.length > 0 && (
           <div className="space-y-2 mb-4">
             {suggestions.map((suggestion) => (
-              <button
+              <Button
                 key={suggestion.place_id}
+                variant="outline"
                 onClick={async () => {
                   const place = await fetchPlaceDetails(suggestion.place_id);
                   if (place) {
                     handlePlaceSelect(place);
                   }
                 }}
-                className="w-full p-3 text-left border rounded-lg hover:bg-gray-50 transition-colors"
+                className="w-full p-3 h-auto text-left justify-start flex-col items-start"
               >
                 <p className="font-semibold text-sm">{suggestion.structured_formatting.main_text}</p>
-                <p className="text-xs text-gray-500">{suggestion.structured_formatting.secondary_text}</p>
-              </button>
+                <p className="text-xs text-muted-foreground">{suggestion.structured_formatting.secondary_text}</p>
+              </Button>
             ))}
           </div>
         )}
@@ -173,11 +175,11 @@ export default function PlacesPage() {
         )}
 
         {!loading && !popularLoading && query.length >= 2 && suggestions.length === 0 && (
-          <p className="text-center text-gray-500 py-8">No suggestions found</p>
+          <p className="text-center text-muted-foreground py-8">No suggestions found</p>
         )}
 
         {!popularLoading && query.length < 2 && popularPlaces.length === 0 && (
-          <p className="text-center text-gray-500 py-8">No popular places available</p>
+          <p className="text-center text-muted-foreground py-8">No popular places available</p>
         )}
       </div>
     </>

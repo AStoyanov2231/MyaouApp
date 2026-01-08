@@ -88,5 +88,5 @@ export function useMessages(placeId: string) {
     };
   }, [placeId, fetchMessages]);
 
-  return { messages, loading, sendMessage, refetch: fetchMessages };
+  return { messages, loading, sendMessage };
 }

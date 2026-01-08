@@ -1,6 +1,7 @@
 "use client";
 import { useRouter } from "next/navigation";
 import { Apple } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 export default function WelcomePage() {
   const router = useRouter();
@@ -33,18 +34,19 @@ export default function WelcomePage() {
         {/* Action Buttons */}
         <div className="space-y-4">
           {/* Continue with Apple */}
-          <button
+          <Button
             onClick={() => handleOAuthClick("Apple")}
-            className="w-full bg-cyan-400 text-gray-900 font-medium py-3.5 px-6 rounded-full hover:bg-cyan-300 transition-colors flex items-center justify-center gap-2 shadow-lg"
+            className="w-full rounded-full bg-cyan-400 hover:bg-cyan-300 text-gray-900 font-medium h-12 shadow-lg"
           >
             <Apple className="w-5 h-5" />
             Continue with Apple
-          </button>
+          </Button>
 
           {/* Continue with Google */}
-          <button
+          <Button
             onClick={() => handleOAuthClick("Google")}
-            className="w-full bg-white text-gray-900 font-medium py-3.5 px-6 rounded-full hover:bg-gray-100 transition-colors flex items-center justify-center gap-2 shadow-lg"
+            variant="secondary"
+            className="w-full rounded-full bg-white hover:bg-gray-100 text-gray-900 font-medium h-12 shadow-lg"
           >
             <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
               <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
@@ -53,26 +55,28 @@ export default function WelcomePage() {
               <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
             </svg>
             Continue with Google
-          </button>
+          </Button>
 
           {/* Sign up with email */}
-          <button
+          <Button
             onClick={() => router.push("/signup")}
-            className="w-full bg-transparent text-white font-medium py-3.5 px-6 rounded-full border-2 border-white hover:bg-white hover:text-purple-600 transition-colors shadow-lg"
+            variant="outline"
+            className="w-full rounded-full bg-transparent text-white font-medium h-12 border-2 border-white hover:bg-white hover:text-purple-600 shadow-lg"
           >
             Sign up with email
-          </button>
+          </Button>
         </div>
 
         {/* Footer Link */}
         <p className="mt-8 text-white text-sm">
           Already have an account?{" "}
-          <button
+          <Button
+            variant="link"
             onClick={() => router.push("/login")}
-            className="font-semibold underline hover:opacity-80 transition-opacity"
+            className="text-white font-semibold p-0 h-auto underline hover:opacity-80"
           >
             Log in
-          </button>
+          </Button>
         </p>
       </div>
     </div>

@@ -2,7 +2,7 @@ import { Place } from "@/types/database";
 import { AutocompletePrediction } from "@/types/google-places";
 import { SearchView } from "./SearchView";
 import { DetailsView } from "./DetailsView";
-import { Spinner } from "@/components/ui";
+import { Loader2 } from "lucide-react";
 
 type FloatingOverlayProps = {
   mode: "search" | "loading" | "details";
@@ -29,7 +29,7 @@ export function FloatingOverlay({
     <div className="absolute top-6 left-6 z-50 w-[420px] max-w-[calc(100%-3rem)] max-h-[calc(100vh-3rem)]">
       {/* Gradient border effect */}
       <div className="relative p-[2px] rounded-3xl bg-gradient-to-br from-[#6867B0] via-cyan-400 to-[#6867B0] shadow-2xl shadow-purple-900/20 animate-[fadeIn_0.4s_ease-out]">
-        <div className="bg-white rounded-3xl overflow-hidden backdrop-blur-xl h-full">
+        <div className="bg-card rounded-3xl overflow-hidden backdrop-blur-xl h-full">
           <div className="relative overflow-hidden">
             {/* Decorative gradient orbs */}
             <div className="absolute -top-20 -right-20 w-40 h-40 bg-gradient-to-br from-[#6867B0]/20 to-cyan-400/20 rounded-full blur-3xl animate-[float_6s_ease-in-out_infinite]" />
@@ -48,10 +48,10 @@ export function FloatingOverlay({
               ) : mode === "loading" ? (
                 <div className="p-6 flex flex-col items-center justify-center min-h-[300px]">
                   <div className="relative mb-4">
-                    <Spinner />
+                    <Loader2 className="h-8 w-8 animate-spin text-primary" />
                     <div className="absolute inset-0 blur-xl bg-gradient-to-r from-[#6867B0]/30 to-cyan-400/30 animate-pulse" />
                   </div>
-                  <p className="text-gray-600 font-semibold text-sm">Loading place details...</p>
+                  <p className="text-muted-foreground font-semibold text-sm">Loading place details...</p>
                 </div>
               ) : (
                 selectedPlace && <DetailsView place={selectedPlace} onBack={onBack} />

@@ -2,6 +2,8 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { MapPin, MessageCircle, Users, User } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { cn } from "@/lib/utils";
 import { useUnreadMessages } from "@/hooks/useUnreadMessages";
 
 const navItems = [
@@ -16,21 +18,22 @@ export function MobileNav() {
   const { unreadCount } = useUnreadMessages();
 
   return (
-    <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t flex">
+    <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-card border-t flex">
       {navItems.map(({ href, icon: Icon, label }) => (
         <Link
           key={href}
           href={href}
-          className={`flex-1 flex flex-col items-center py-2 text-xs ${
-            pathname.startsWith(href) ? "text-primary" : "text-gray-500"
-          }`}
+          className={cn(
+            "flex-1 flex flex-col items-center py-2 text-xs",
+            pathname.startsWith(href) ? "text-primary" : "text-muted-foreground"
+          )}
         >
           <div className="relative">
             <Icon size={20} />
             {href === "/messages" && unreadCount > 0 && (
-              <span className="absolute -top-1 -right-2 bg-red-500 text-white text-[10px] min-w-[16px] h-4 px-1 rounded-full flex items-center justify-center">
+              <Badge className="absolute -top-1 -right-2 h-4 min-w-[16px] px-1 flex items-center justify-center rounded-full text-[10px] bg-destructive">
                 {unreadCount > 9 ? "9+" : unreadCount}
-              </span>
+              </Badge>
             )}
           </div>
           {label}

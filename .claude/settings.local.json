@@ -19,7 +19,10 @@
       "Bash(cat:*)",
       "Bash(grep:*)",
       "Bash(git show:*)",
-      "Skill(frontend-design)"
+      "Skill(frontend-design)",
+      "Bash(npx shadcn@latest init --force --defaults)",
+      "Bash(npx shadcn@latest add:*)",
+      "Bash(findstr:*)"
     ]
   }
 }

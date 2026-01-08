@@ -1,14 +1,22 @@
 "use client";
 import { useEffect, useState, useRef, use } from "react";
-import { ArrowLeft, Send } from "lucide-react";
+import { ArrowLeft, Send, Loader2 } from "lucide-react";
 import Link from "next/link";
-import { Button, Input, Avatar, Spinner } from "@/components/ui";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
+import { Skeleton } from "@/components/ui/skeleton";
+import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/useAuth";
 import { createClient } from "@/lib/supabase/client";
 import type { DMThread, DMMessage, Profile } from "@/types/database";
 import { formatDistanceToNow } from "date-fns";
 
 const supabase = createClient();
+
+function getInitials(name: string) {
+  return name.slice(0, 2).toUpperCase();
+}
 
 type ThreadWithParticipants = DMThread & {
   participant_1: Profile;
@@ -103,8 +111,17 @@ export default function DMConversationPage({ params }: { params: Promise<{ threa
 
   if (loading || !thread) {
     return (
-      <div className="flex justify-center items-center h-full">
-        <Spinner />
+      <div className="flex flex-col h-screen">
+        <div className="bg-card border-b p-4 flex items-center gap-4">
+          <Skeleton className="h-8 w-8 rounded-full" />
+          <div className="space-y-2">
+            <Skeleton className="h-4 w-24" />
+            <Skeleton className="h-3 w-16" />
+          </div>
+        </div>
+        <div className="flex-1 flex justify-center items-center">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        </div>
       </div>
     );
   }
@@ -113,14 +130,19 @@ export default function DMConversationPage({ params }: { params: Promise<{ threa
 
   return (
     <div className="flex flex-col h-screen">
-      <header className="bg-white border-b p-4 flex items-center gap-4">
+      <header className="bg-card border-b p-4 flex items-center gap-4">
         <Link href="/messages" className="md:hidden">
           <ArrowLeft />
         </Link>
-        <Avatar src={other.avatar_url} name={other.display_name || other.username} size="sm" />
+        <Avatar className="h-8 w-8">
+          <AvatarImage src={other.avatar_url || undefined} alt={other.display_name || other.username} />
+          <AvatarFallback className="bg-primary text-primary-foreground text-sm">
+            {getInitials(other.display_name || other.username)}
+          </AvatarFallback>
+        </Avatar>
         <div>
           <h1 className="font-semibold">{other.display_name || other.username}</h1>
-          <p className="text-sm text-gray-500">@{other.username}</p>
+          <p className="text-sm text-muted-foreground">@{other.username}</p>
         </div>
       </header>
 
@@ -128,19 +150,28 @@ export default function DMConversationPage({ params }: { params: Promise<{ threa
         {messages.map((msg) => (
           <div
             key={msg.id}
-            className={`flex gap-3 ${msg.sender_id === user?.id ? "flex-row-reverse" : ""}`}
+            className={cn("flex gap-3", msg.sender_id === user?.id && "flex-row-reverse")}
           >
-            <Avatar src={msg.sender?.avatar_url} name={msg.sender?.display_name || msg.sender?.username} size="sm" />
+            <Avatar className="h-8 w-8">
+              <AvatarImage src={msg.sender?.avatar_url || undefined} alt={msg.sender?.display_name || msg.sender?.username} />
+              <AvatarFallback className="bg-primary text-primary-foreground text-sm">
+                {getInitials(msg.sender?.display_name || msg.sender?.username || "?")}
+              </AvatarFallback>
+            </Avatar>
             <div
-              className={`max-w-[70%] ${
+              className={cn(
+                "max-w-[70%] p-3 shadow-sm",
                 msg.sender_id === user?.id
-                  ? "bg-primary text-white rounded-l-xl rounded-tr-xl"
-                  : "bg-white rounded-r-xl rounded-tl-xl"
-              } p-3 shadow-sm`}
+                  ? "bg-primary text-primary-foreground rounded-l-xl rounded-tr-xl"
+                  : "bg-card rounded-r-xl rounded-tl-xl"
+              )}
             >
               {msg.media_url && <img src={msg.media_url} alt="" className="rounded mb-2 max-w-full" />}
               <p>{msg.content}</p>
-              <p className={`text-xs mt-1 ${msg.sender_id === user?.id ? "text-white/70" : "text-gray-400"}`}>
+              <p className={cn(
+                "text-xs mt-1",
+                msg.sender_id === user?.id ? "text-primary-foreground/70" : "text-muted-foreground"
+              )}>
                 {formatDistanceToNow(new Date(msg.created_at), { addSuffix: true })}
               </p>
             </div>
@@ -149,15 +180,15 @@ export default function DMConversationPage({ params }: { params: Promise<{ threa
         <div ref={messagesEndRef} />
       </div>
 
-      <form onSubmit={handleSend} className="bg-white border-t p-4 flex gap-2">
+      <form onSubmit={handleSend} className="bg-card border-t p-4 flex gap-2">
         <Input
           value={input}
           onChange={(e) => setInput(e.target.value)}
           placeholder="Type a message..."
-          className="flex-1"
+          className="flex-1 h-10"
         />
         <Button type="submit" disabled={!input.trim() || sending}>
-          <Send size={18} />
+          {sending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send size={18} />}
         </Button>
       </form>
     </div>

@@ -1,8 +1,9 @@
 "use client";
 import { useState } from "react";
 import Link from "next/link";
-import { AtSign, Lock } from "lucide-react";
-import { Button, Input } from "@/components/ui";
+import { AtSign, Lock, Loader2 } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { InputWithIcon } from "@/components/ui/input-with-icon";
 import { login } from "../actions";
 
 export default function LoginPage() {
@@ -30,7 +31,7 @@ export default function LoginPage() {
 
         {/* Form */}
         <form onSubmit={handleSubmit} className="space-y-4">
-          <Input
+          <InputWithIcon
             name="email"
             type="email"
             placeholder="Email"
@@ -38,7 +39,7 @@ export default function LoginPage() {
             icon={<AtSign className="w-5 h-5" />}
             className="border-none"
           />
-          <Input
+          <InputWithIcon
             name="password"
             type="password"
             placeholder="Password"
@@ -53,10 +54,10 @@ export default function LoginPage() {
           )}
           <Button
             type="submit"
-            className="w-full !bg-cyan-400 hover:!bg-cyan-300 !text-gray-900 font-semibold py-3.5 text-base"
-            loading={loading}
+            className="w-full rounded-full bg-cyan-400 hover:bg-cyan-300 text-gray-900 font-semibold h-12 text-base"
+            disabled={loading}
           >
-            Log in
+            {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : "Log in"}
           </Button>
         </form>
 
