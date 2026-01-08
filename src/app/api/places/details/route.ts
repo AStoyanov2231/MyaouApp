@@ -102,21 +102,31 @@ export async function GET(request: NextRequest) {
     };
 
     // Use service client to upsert (bypasses RLS)
+    // Chain .select() to get inserted data in single query (optimization)
     const serviceClient = await createServiceClient();
-    await serviceClient.from("places").upsert([placeData], {
-      onConflict: "google_place_id",
-      ignoreDuplicates: false,
-    });
-
-    // Fetch the complete place record with all database fields
-    const { data: insertedPlace } = await supabase
+    const { data: insertedPlace, error: upsertError } = await serviceClient
       .from("places")
-      .select("*")
-      .eq("google_place_id", placeData.google_place_id)
+      .upsert([placeData], {
+        onConflict: "google_place_id",
+        ignoreDuplicates: false,
+      })
+      .select()
       .single();
 
+    if (upsertError) {
+      console.error("Upsert error:", upsertError);
+    }
+
+    // Return insertedPlace if found, otherwise return transformed placeData with defaults
+    const responsePlace = insertedPlace || {
+      ...placeData,
+      id: null,
+      member_count: 0,
+      message_count: 0,
+    };
+
     return NextResponse.json({
-      place: insertedPlace,
+      place: responsePlace,
       source: "google",
     });
   } catch (error) {
