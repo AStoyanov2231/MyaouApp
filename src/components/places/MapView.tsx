@@ -12,15 +12,25 @@ L.Icon.Default.mergeOptions({
   shadowUrl: "/leaflet/marker-shadow.png",
 });
 
-// Custom icon for selected marker
-const selectedIcon = new L.Icon({
-  iconUrl: "/leaflet/marker-icon.png",
-  iconRetinaUrl: "/leaflet/marker-icon-2x.png",
-  shadowUrl: "/leaflet/marker-shadow.png",
-  iconSize: [30, 48],
-  iconAnchor: [15, 48],
+// Brand-colored marker icon for selected place
+const brandMarkerIcon = new L.DivIcon({
+  className: "brand-marker",
+  html: `
+    <svg width="36" height="48" viewBox="0 0 36 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <path d="M18 0C8.06 0 0 8.06 0 18c0 13.5 18 30 18 30s18-16.5 18-30c0-9.94-8.06-18-18-18z" fill="#6867B0"/>
+      <path d="M18 0C8.06 0 0 8.06 0 18c0 13.5 18 30 18 30s18-16.5 18-30c0-9.94-8.06-18-18-18z" fill="url(#gradient)"/>
+      <circle cx="18" cy="18" r="8" fill="white"/>
+      <defs>
+        <linearGradient id="gradient" x1="0" y1="0" x2="36" y2="48" gradientUnits="userSpaceOnUse">
+          <stop offset="0%" stop-color="#6867B0"/>
+          <stop offset="100%" stop-color="#3ECFCF"/>
+        </linearGradient>
+      </defs>
+    </svg>
+  `,
+  iconSize: [36, 48],
+  iconAnchor: [18, 48],
   popupAnchor: [0, -48],
-  className: "selected-marker",
 });
 
 // Component to handle map recentering when center prop changes
@@ -61,11 +71,15 @@ export default function MapView({
     return null;
   }
 
+  // Check if selected place is already in validPlaces
+  const selectedInList = selectedPlace && validPlaces.some(p => p.id === selectedPlace.id);
+
   return (
     <MapContainer
       center={center}
       zoom={zoom}
       scrollWheelZoom={true}
+      zoomControl={false}
       className="w-full h-full"
       style={{ height: "100%", width: "100%" }}
     >
@@ -74,28 +88,51 @@ export default function MapView({
         url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
       />
       <RecenterMap center={center} />
+
+      {/* Render markers for places in the list */}
       {validPlaces.map((place) => {
         const isSelected = selectedPlace?.id === place.id;
         return (
           <Marker
             key={place.id}
             position={[place.latitude, place.longitude]}
-            {...(isSelected && { icon: selectedIcon })}
+            icon={isSelected ? brandMarkerIcon : undefined}
             eventHandlers={{
               click: () => onMarkerClick(place),
             }}
           >
+            <Popup>
+              <div className="text-sm">
+                <h4 className="font-semibold mb-1">{place.name}</h4>
+                {place.formatted_address && (
+                  <p className="text-muted-foreground text-xs">{place.formatted_address}</p>
+                )}
+              </div>
+            </Popup>
+          </Marker>
+        );
+      })}
+
+      {/* Render selected place marker if not in the list */}
+      {selectedPlace && !selectedInList && selectedPlace.latitude && selectedPlace.longitude && (
+        <Marker
+          key={`selected-${selectedPlace.id}`}
+          position={[selectedPlace.latitude, selectedPlace.longitude]}
+          icon={brandMarkerIcon}
+          eventHandlers={{
+            click: () => onMarkerClick(selectedPlace),
+          }}
+        >
           <Popup>
             <div className="text-sm">
-              <h4 className="font-semibold mb-1">{place.name}</h4>
-              {place.formatted_address && (
-                <p className="text-muted-foreground text-xs">{place.formatted_address}</p>
+              <h4 className="font-semibold mb-1">{selectedPlace.name}</h4>
+              {selectedPlace.formatted_address && (
+                <p className="text-muted-foreground text-xs">{selectedPlace.formatted_address}</p>
               )}
             </div>
           </Popup>
         </Marker>
-        );
-      })}
+      )}
     </MapContainer>
   );
 }

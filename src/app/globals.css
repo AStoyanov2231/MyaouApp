@@ -95,6 +95,12 @@ body {
   }
 }
 
+/* Brand marker icon for Leaflet */
+.brand-marker {
+  background: transparent !important;
+  border: none !important;
+}
+
 /* Custom Scrollbar */
 .custom-scrollbar::-webkit-scrollbar {
   width: 6px;
