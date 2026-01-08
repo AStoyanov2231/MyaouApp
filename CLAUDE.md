@@ -11,8 +11,9 @@ PlaceChat is a location-based chat application where users discover real-world p
 - **Frontend**: Next.js 16+ (App Router), React 19, TypeScript, Tailwind CSS
 - **Backend**: Supabase (PostgreSQL, Auth, Realtime, Storage)
 - **Maps**: Leaflet + react-leaflet with OpenStreetMap tiles
+- **UI Components**: shadcn/ui (Radix UI primitives + Tailwind)
 - **Icons**: Lucide React
-- **State**: Zustand
+- **Utilities**: class-variance-authority, clsx, tailwind-merge, date-fns
 - **Image Processing**: browser-image-compression
 
 ## Commands
@@ -26,360 +27,197 @@ npm run lint     # Run ESLint
 
 ## Architecture
 
-### High-Level Overview
-
-The app follows a **hybrid Next.js architecture** with server-side rendering, API routes, and client-side real-time updates:
-
-1. **Frontend (Client)**: React 19 components with Zustand for state management
-2. **Backend (Server)**: Next.js API routes + Supabase PostgreSQL + Row Level Security
-3. **Real-time**: Supabase Realtime for live message updates
-4. **Authentication**: Supabase Auth with middleware-based session management
-5. **Storage**: Supabase Storage for user-uploaded images/media
-
 ### Directory Structure
 
 ```
 src/
 ├── app/
-│   ├── (auth)/          # Unauthenticated routes (welcome, login, signup)
-│   ├── (main)/          # Protected routes with shared layout
-│   │   ├── friends/     # Friend requests and list
-│   │   ├── messages/    # DM threads and place chats
-│   │   ├── places/      # Place discovery and chat rooms
-│   │   └── profile/     # User profiles
-│   └── api/             # Backend API routes
+│   ├── (auth)/              # Unauthenticated routes (welcome, login, signup)
+│   │   └── actions.ts       # Server actions: login, signup, signOut
+│   ├── (main)/              # Protected routes with shared layout
+│   │   ├── friends/         # Friend requests and list
+│   │   ├── messages/        # Unified inbox (DMs + place chats)
+│   │   │   ├── [threadId]/  # DM conversation
+│   │   │   └── place/[placeId]/ # Place chat room
+│   │   ├── places/          # Place discovery (map + grid)
+│   │   └── profile/         # User profiles
+│   │       └── [userId]/    # Other user's profile
+│   └── api/                 # Backend API routes
 ├── components/
-│   ├── ui/              # Reusable UI components (Button, Input, etc.)
-│   ├── places/          # Places map and overlay components
-│   └── [feature]/       # Feature-specific components
-├── hooks/               # Custom React hooks (useAuth, useMessages, etc.)
-├── lib/                 # Utilities and configurations
-│   ├── supabase/        # Supabase client configurations
-│   └── image-compression.ts
-├── stores/              # Zustand state stores
-├── types/               # TypeScript type definitions
-└── middleware.ts        # Auth middleware for route protection
+│   ├── ui/                  # shadcn/ui components
+│   ├── layout/              # Sidebar, MobileNav
+│   └── places/              # Map and overlay components
+├── hooks/                   # Custom React hooks
+├── lib/                     # Utilities and configurations
+│   └── supabase/            # Supabase client configurations
+├── types/                   # TypeScript type definitions
+└── middleware.ts            # Auth middleware for route protection
 ```
 
 ### Route Structure
 
-**Authentication Routes** (`src/app/(auth)/`):
-- `/welcome` - Landing page with OAuth buttons (Apple, Google) and email signup option
-- `/login` - Email/password login with modern design
-- `/signup` - Email/password signup with modern design
+**Auth Routes** (`/welcome`, `/login`, `/signup`):
+- OAuth buttons (Apple, Google) show "Coming soon" - only email/password implemented
 - Server actions in `actions.ts` handle all auth operations
 
-**Protected Routes** (`src/app/(main)/`):
-- `/places` - Interactive map-based place discovery (desktop: map + overlay, mobile: grid)
-- `/messages` - Unified inbox (DMs + place chats)
-- `/messages/[threadId]` - Direct message thread
-- `/messages/place/[placeId]` - Place chat room (users join directly from places map)
-- `/friends` - Friend requests and friend list
-- `/profile` - Current user profile
-- `/profile/[userId]` - View other user profiles
+**Protected Routes**:
+- `/places` - Map-based place discovery (desktop: Leaflet map + overlay, mobile: grid)
+- `/messages` - Unified inbox showing DMs and current place membership
+- `/messages/[threadId]` - DM conversation with real-time updates
+- `/messages/place/[placeId]` - Place chat room with real-time updates
+- `/friends` - Tabbed view: Friends list + Pending requests
+- `/profile` - Current user profile (editable)
+- `/profile/[userId]` - Other user's profile with friend request button
 
-**API Routes** (`src/app/api/`):
-- `/api/places/*` - Place search, join, leave, read status
-- `/api/messages/*` - Fetch and send place messages
-- `/api/dm/*` - DM threads, messages, read status
-- `/api/friends/*` - Friend requests, accept, remove
-- `/api/profile/*` - Profile CRUD operations
-- `/api/upload` - Image upload to Supabase Storage
+### API Routes
 
-### Data Flow Patterns
+**Places** (`/api/places/`):
+- `autocomplete` - Google Places autocomplete with session tokens
+- `details` - Fetch place details, cache for 7 days
+- `popular` - Get popular/trending places
+- `[placeId]/join` - Join place (auto-leaves previous place)
+- `[placeId]/leave` - Leave place
+- `[placeId]/read` - Mark messages as read
 
-**1. Place Discovery Flow (Map-Based):**
-```
-Desktop: User views interactive Leaflet map → Searches place in overlay →
-Results update map markers and list → Click place → View details in overlay →
-Click "Join Place" → API creates place_member → Redirect to chat
+**Messages** (`/api/messages/`):
+- `POST /` - Send place message
+- `GET /[placeId]` - Get message history
 
-Mobile: User views grid → Searches places → Click place card →
-API creates place_member → Redirect to chat
+**DMs** (`/api/dm/`):
+- `threads` - List/create DM threads
+- `[threadId]` - Get thread, send message
+- `[threadId]/read` - Mark as read
 
-Search: API route → Check cache → Google Places API → Cache result → Return to client
-Map: Leaflet centers on selected place with smooth animation (flyTo)
-```
+**Friends** (`/api/friends/`):
+- `GET/POST /` - List friends, send request
+- `requests` - Get pending requests
+- `[friendshipId]` - Accept/reject request
 
-**2. Place Chat Flow:**
-```
-User joins directly from map/grid → API creates place_member →
-Redirects to /messages/place/[placeId] → useMessages hook fetches history →
-Subscribes to Realtime updates → User sends message → API route →
-Supabase insert → Realtime broadcasts to all members
-```
+**Profile** (`/api/profile/`):
+- `GET/PATCH /` - Current user profile
+- `[userId]` - Other user's profile with friendship status
 
-**3. Friend System Flow:**
-```
-User sends request → API creates friendship (pending) →
-Recipient accepts → API updates status (accepted) →
-Both users can now DM → dm_threads table links friendships
-```
+**Other**: `/api/upload`, `/api/auth/callback`
 
-**4. DM Flow:**
-```
-User selects friend → API creates/retrieves dm_thread →
-Messages sent to dm_messages → Real-time subscription updates both users
-```
+## Supabase Configuration
 
-### Supabase Client Architecture
-
-Two client patterns exist in `src/lib/supabase/`:
+### Client Patterns (`src/lib/supabase/`)
 
 **Browser Client** (`client.ts`):
-- Singleton pattern for consistent session across components
-- Used in client components and hooks
+- Singleton pattern for client components
 - Respects Row Level Security (RLS)
-- Manages user authentication state
 
 **Server Client** (`server.ts`):
-- `createClient()` - For user-context operations (respects RLS)
-- `createServiceClient()` - For service role operations (bypasses RLS)
-- Used in API routes, server actions, and middleware
-- Service client used only for privileged operations (profile creation, place insertion)
+- `createClient()` - User-context operations (respects RLS)
+- `createServiceClient()` - Service role (bypasses RLS for privileged operations)
 
-### Authentication Flow
+### Database Schema
 
-1. Middleware (`src/middleware.ts`) handles session refresh and redirects
-   - Unauthenticated users redirect to `/welcome` (landing page)
-   - Authenticated users accessing auth pages redirect to `/places`
-2. Welcome page (`/welcome`) - Entry point with three options:
-   - "Continue with Apple" - Shows "Coming soon" alert (UI only, no OAuth logic)
-   - "Continue with Google" - Shows "Coming soon" alert (UI only, no OAuth logic)
-   - "Sign up with email" - Navigates to `/signup`
-3. Server actions in `src/app/(auth)/actions.ts` handle login/signup/OAuth
-4. Profile creation uses service client to bypass RLS on new user signup
-5. `useAuth` hook manages client-side auth state and auto-creates profiles if missing
+Core tables: `profiles`, `places`, `place_members`, `messages`, `friendships`, `dm_threads`, `dm_messages`
 
-### Authentication UI Design
+Type definitions in `src/types/database.ts` - keep synchronized with schema changes.
 
-All auth pages use consistent color scheme:
-- Background color: `#6867B0` (purple/indigo)
-- Button color: `cyan-400` (teal)
-- White text on colored backgrounds
-- Enhanced Input component with icon support (`Mail`, `AtSign`, `Lock` from lucide-react)
-- Full-screen layouts (no cards), mobile-first responsive design
+## Hooks
 
-### State Management
-
-**Zustand Stores** (`src/stores/`):
-- Lightweight state management for global app state
-- Used for user preferences, UI state, and cached data
-
-**React Hooks** (`src/hooks/`):
-- `useAuth` - Manages authentication state and profile data
-- `useMessages` - Sets up Realtime subscriptions and message history
-- Feature-specific hooks for data fetching and mutations
-
-**Server State**:
-- API routes fetch fresh data from Supabase on each request
-- Client components use hooks to subscribe to real-time updates
-- No complex client-side cache (relies on Supabase Realtime for freshness)
-
-### Real-time Messaging Architecture
-
-**Place Messages** (`useMessages` hook):
-1. Initial fetch via API route (`/api/messages/[placeId]`)
-2. Set up Supabase Realtime subscription to `messages` table
-3. Filter by `place_id` and listen for `INSERT`, `UPDATE`, `DELETE`
-4. Automatically update UI when new messages arrive
-5. Unsubscribe on component unmount
-
-**Direct Messages**:
-- Similar pattern with `dm_messages` table
-- Filtered by `thread_id`
-- Both users in conversation receive updates via Realtime
-
-**Key Configuration**:
-- Realtime enabled on `messages`, `dm_messages`, and `groups` tables
-- Postgres triggers handle message counters and read status
-- RLS ensures users only receive messages they're allowed to see
-
-### Database Schema Architecture
-
-**Core Tables**:
-- `profiles` - User profiles (1:1 with auth.users)
-- `places` - Cached Google Places data
-- `place_members` - Many-to-many relationship (users ↔ places)
-- `messages` - Place chat messages
-- `friendships` - Friend relationships (pending/accepted)
-- `dm_threads` - DM conversation containers
-- `dm_messages` - Direct messages
-- `groups` - Group chat feature
-
-**Relationships**:
-```
-User (auth.users)
-  ├─ 1:1 → Profile
-  ├─ 1:N → PlaceMember
-  ├─ 1:N → Message (sender)
-  ├─ 1:N → Friendship (requester/addressee)
-  └─ 1:N → DMMessage (sender)
-
-Place
-  ├─ 1:N → PlaceMember
-  └─ 1:N → Message
-
-Friendship
-  └─ 1:1 → DMThread (when accepted)
-```
-
-**Type Definitions**:
-- Manual type definitions in `src/types/database.ts`
-- Must be kept synchronized with schema changes
-- Core entities: Profile, Place, PlaceMember, Message, Friendship, DMThread, DMMessage
+- **useAuth** - Auth state, profile fetching, auto-creates profile if missing
+- **useMessages** - Place messages with Realtime subscription
+- **usePlacesAutocomplete** - Google Places autocomplete with session tokens
+- **useUnreadMessages** - Unread count across DMs and place chats with Realtime
 
 ## UI Components
 
-### Enhanced Input Component (`src/components/ui/Input.tsx`)
+### shadcn/ui Components (`src/components/ui/`)
 
-- Supports optional `icon` prop for prefix icons
-- Styled with white background, shadow, and large padding
-- Rounded corners (`rounded-xl`)
-- Icon positioned absolutely with proper spacing
+Built on Radix UI primitives with Tailwind styling:
+- `button.tsx` - CVA-based with variants (default, destructive, outline, secondary, ghost, link)
+- `input.tsx` - Standard text input
+- `input-with-icon.tsx` - Input with icon prefix (Mail, AtSign, Lock)
+- `avatar.tsx` - Radix avatar with fallback initials
+- `card.tsx` - Card container (header, content, footer)
+- `badge.tsx` - Label/pill components
+- `alert.tsx` - Alert boxes with variants
+- `tabs.tsx` - Radix tabbed interface
+- `label.tsx`, `textarea.tsx`, `skeleton.tsx`
 
-### Button Component (`src/components/ui/Button.tsx`)
+### Layout Components (`src/components/layout/`)
 
-- Variants: primary, secondary, ghost
-- Sizes: sm, md, lg
-- Loading state support
+- **Sidebar.tsx** - Desktop navigation (md+ breakpoint)
+- **MobileNav.tsx** - Fixed bottom navigation for mobile
 
-### Places Map Components (`src/components/places/`)
+### Places Components (`src/components/places/`)
 
-**MapContainer.tsx:**
-- Wrapper component with Next.js dynamic import (ssr: false)
-- Leaflet requires browser window object, so SSR is disabled
-- Shows loading skeleton while map initializes
-- Props: places, center, zoom, selectedPlace, onMarkerClick
+- **MapContainer.tsx** - Wrapper with dynamic import (ssr: false)
+- **MapView.tsx** - Leaflet map with markers, RecenterMap for flyTo animation
+- **FloatingOverlay.tsx** - Glassmorphic overlay (bg-white/90 backdrop-blur-lg)
+- **SearchView.tsx** - Autocomplete search with suggestions
+- **DetailsView.tsx** - Place details with "Join Place" button
+- **PlaceCard.tsx** - Mobile grid view card
 
-**MapView.tsx:**
-- Actual Leaflet MapContainer with OpenStreetMap TileLayer
-- RecenterMap component handles smooth map recentering (flyTo animation)
-- Renders markers for each place with coordinates
-- Selected place gets larger marker icon
-- Click marker to trigger place selection
+## Styling
 
-**FloatingOverlay.tsx:**
-- Glassmorphic overlay (bg-white/90 backdrop-blur-lg)
-- Positioned absolutely over map (top-6 left-6)
-- Switches between SearchView and DetailsView based on mode
-- Smooth transitions with CSS
+### Design System
 
-**SearchView.tsx:**
-- Search input with purple icon (#6867B0)
-- Scrollable results list with hover effects
-- Loading and empty states
-- Click result to show place details
+- **Fonts**: DM Sans (body), Outfit (headings) - imported via Google Fonts
+- **Primary**: `#6867B0` (purple/indigo) - HSL: 241 33% 55%
+- **Accent**: Cyan/teal - HSL: 187 71% 55%
+- **Dark mode**: Supported via CSS variables
 
-**DetailsView.tsx:**
-- Shows place photo, name, address, stats
-- Back button returns to search
-- "Join Place" button calls API and redirects to chat
-- Loading states and error handling
+### Custom Utilities
 
-**PlaceCard.tsx:**
-- Reusable card for mobile grid view
-- Click to join place directly
-- Shows loading state during API call
-
-### API Design Patterns
-
-**RESTful Routes**:
-- GET requests fetch data (with RLS applied)
-- POST requests create resources
-- PATCH/PUT requests update resources
-- DELETE requests remove resources
-
-**Authentication**:
-- All API routes use `createClient()` from `server.ts`
-- User ID extracted from session: `const { data: { user } } = await supabase.auth.getUser()`
-- Unauthorized requests return 401
-
-**Error Handling**:
-- Try-catch blocks wrap all operations
-- Return JSON with error messages: `{ error: "message" }`
-- HTTP status codes indicate success/failure
-
-**Data Validation**:
-- Request body parsing via `await request.json()`
-- Type checking and validation before database operations
-- RLS provides additional security layer
-
-### Component Architecture
-
-**Layout Hierarchy**:
-```
-RootLayout (src/app/layout.tsx)
-├── AuthLayout (src/app/(auth)/layout.tsx)
-│   └── Welcome/Login/Signup pages
-└── MainLayout (src/app/(main)/layout.tsx)
-    ├── Sidebar (desktop)
-    ├── MobileNav (mobile bottom nav)
-    └── Page content
+```css
+.gradient-brand          /* Primary to accent horizontal gradient */
+.gradient-brand-vertical /* Primary to accent vertical gradient */
+.gradient-brand-text     /* Gradient text effect */
+.gradient-brand-subtle   /* Subtle gradient background */
+.custom-scrollbar        /* Styled scrollbar */
 ```
 
-**Shared Components** (`src/components/ui/`):
-- Reusable, generic components (Button, Input, etc.)
-- Accept props for customization
-- Styled with Tailwind CSS utility classes
+### Animations
 
-**Feature Components**:
-- Specific to features (MessageBubble, PlaceCard, FriendRequest, etc.)
-- Composed from shared UI components
-- Handle business logic and data fetching
+Custom keyframes in `globals.css`: fadeIn, slideDown, slideUp, slideRight, scaleIn, float, shake
 
-**Places Page Architecture** (`src/app/(main)/places/page.tsx`):
-- **Desktop (md: breakpoint)**: Interactive Leaflet map with floating overlay
-  - Map fills viewport height, displays markers for all places
-  - Floating overlay shows search or place details
-  - Geolocation centers map on user's location (fallback to San Francisco)
-  - Map recenters when place is selected
-- **Mobile (<md)**: Grid layout with PlaceCard components
-  - Traditional search and grid view
-  - No map on mobile for better usability
-- **State Management**: Local useState for selectedPlace, overlayMode, mapCenter
-- **Direct Join Flow**: Clicking place calls `/api/places/[id]/join` then redirects to chat
+### Utility Function
+
+`cn()` in `src/lib/utils.ts` - Combines clsx and tailwind-merge for safe class merging.
 
 ## Key Patterns
 
-### Google Places Caching
+### Authentication Flow
 
-Places from Google API are cached in `places` table with 7-day expiry. Search flow: check cache first, then Google API, fallback to popular places on failure.
+1. Middleware handles session refresh and redirects
+2. Unauthenticated users → `/welcome`
+3. Server actions handle login/signup with profile auto-creation
+4. `useAuth` hook manages client-side state
 
-### RLS (Row Level Security)
+### Place Discovery Flow
 
-All tables have RLS enabled. Key policies:
-- Profiles are publicly viewable, users can only update their own
-- Messages viewable/sendable only by place members
-- DMs require mutual friendship
-- Place insertions use service role (server-side only)
+```
+User searches → /api/places/autocomplete (Google API + session token)
+→ Select result → /api/places/details (cached 7 days)
+→ "Join Place" → /api/places/[id]/join
+→ Redirect to /messages/place/[id]
+```
+
+### Real-time Messaging
+
+```
+useMessages hook → Initial fetch → Supabase Realtime subscription
+→ Listen for INSERT/UPDATE/DELETE → Auto-update UI
+```
 
 ### Image Compression
 
-Client-side compression via `src/lib/image-compression.ts` before upload. Max 500KB, 1920px max dimension. Thumbnails generated at 50KB/300px.
+Client-side via `src/lib/image-compression.ts`:
+- `compressImage()`: Max 500KB, 1920px
+- `createThumbnail()`: Max 50KB, 300px
 
-### Leaflet Map Integration
+## Leaflet Map Setup
 
-**Setup Requirements:**
-- Packages: `leaflet`, `react-leaflet`, `@types/leaflet`
-- Leaflet CSS imported in `src/app/globals.css`
-- Marker assets in `public/leaflet/` (marker-icon.png, marker-icon-2x.png, marker-shadow.png)
-
-**SSR Handling:**
-- Leaflet requires browser window object
-- Use Next.js dynamic import with `ssr: false` in MapContainer component
-- Show loading skeleton during map initialization
-
-**Icon Configuration:**
-- Fix default marker icon paths (Webpack bundling breaks default paths)
-- Delete default `_getIconUrl` and merge custom options pointing to public folder
-- Custom selected marker icon with larger size (30x48)
-
-**Map Features:**
-- OpenStreetMap tiles (free, no API key required)
-- Smooth recentering with `map.flyTo()` animation
-- Zoom level 15 for place details, 13 for general view
-- Geolocation API for user location with fallback
+- SSR disabled via Next.js dynamic import
+- Marker icons in `public/leaflet/`
+- Icon path fix for Webpack bundling in MapView.tsx
+- RecenterMap component for smooth flyTo animation
+- Geolocation API with San Francisco fallback
 
 ## Environment Variables
 
@@ -392,6 +230,11 @@ GOOGLE_PLACES_API_KEY
 NEXT_PUBLIC_APP_URL
 ```
 
-## Database Schema
+## Not Yet Implemented
 
-Full schema in `supabase-schema.sql`. Key tables: profiles, places, place_members, messages, friendships, dm_threads, dm_messages.
+- OAuth (Apple/Google) - buttons show "Coming soon"
+- Media sharing in messages - API exists but no UI
+- User search for adding friends
+- Typing indicators
+- Push notifications
+- Message editing/reactions
