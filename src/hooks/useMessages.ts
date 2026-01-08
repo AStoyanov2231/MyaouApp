@@ -43,44 +43,68 @@ export function useMessages(placeId: string) {
 
   useEffect(() => {
     let isMounted = true;
+    let reconnectTimeout: NodeJS.Timeout | null = null;
+
+    const setupChannel = () => {
+      // Clean up any existing channel before creating a new one
+      if (channelRef.current) {
+        supabase.removeChannel(channelRef.current);
+      }
+
+      // Set up realtime subscription (removed Date.now() to prevent orphaned channels)
+      const channel = supabase
+        .channel(`place:${placeId}`)
+        .on(
+          "postgres_changes",
+          {
+            event: "INSERT",
+            schema: "public",
+            table: "messages",
+            filter: `place_id=eq.${placeId}`,
+          },
+          async () => {
+            if (!isMounted) return;
+            const res = await fetch(`/api/messages/${placeId}`);
+            const data = await res.json();
+            if (isMounted) setMessages(data.messages || []);
+            // Mark messages as read since user is viewing this place
+            fetch(`/api/places/${placeId}/read`, { method: "POST" });
+          }
+        )
+        .subscribe((status) => {
+          if (status === "SUBSCRIBED") {
+            console.log(`Subscribed to place:${placeId} realtime`);
+          } else if (
+            status === "CHANNEL_ERROR" ||
+            status === "TIMED_OUT" ||
+            status === "CLOSED"
+          ) {
+            console.warn(`Channel ${status}, attempting reconnect in 3s...`);
+            if (isMounted) {
+              reconnectTimeout = setTimeout(setupChannel, 3000);
+            }
+          }
+        });
+
+      channelRef.current = channel;
+    };
+
+    // Handle visibility changes (mobile background/foreground)
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "visible" && isMounted) {
+        fetchMessages(); // Refresh messages on return
+        setupChannel(); // Reconnect realtime
+      }
+    };
 
     fetchMessages();
-
-    // Clean up any existing channel before creating a new one
-    if (channelRef.current) {
-      supabase.removeChannel(channelRef.current);
-    }
-
-    // Set up realtime subscription
-    const channel = supabase
-      .channel(`place:${placeId}:${Date.now()}`)
-      .on(
-        "postgres_changes",
-        {
-          event: "INSERT",
-          schema: "public",
-          table: "messages",
-          filter: `place_id=eq.${placeId}`,
-        },
-        async () => {
-          if (!isMounted) return;
-          const res = await fetch(`/api/messages/${placeId}`);
-          const data = await res.json();
-          if (isMounted) setMessages(data.messages || []);
-          // Mark messages as read since user is viewing this place
-          fetch(`/api/places/${placeId}/read`, { method: "POST" });
-        }
-      )
-      .subscribe((status) => {
-        if (status === "SUBSCRIBED") {
-          console.log(`Subscribed to place:${placeId} realtime`);
-        }
-      });
-
-    channelRef.current = channel;
+    setupChannel();
+    document.addEventListener("visibilitychange", handleVisibilityChange);
 
     return () => {
       isMounted = false;
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+      if (reconnectTimeout) clearTimeout(reconnectTimeout);
       if (channelRef.current) {
         supabase.removeChannel(channelRef.current);
         channelRef.current = null;

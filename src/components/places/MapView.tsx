@@ -28,7 +28,17 @@ function RecenterMap({ center }: { center: [number, number] }) {
   const map = useMap();
 
   useEffect(() => {
-    map.flyTo(center, 15, { duration: 1 }); // Smooth animation to new center
+    // Validate coordinates before flying to prevent "Invalid LatLng object: (NaN, NaN)" error
+    if (
+      Array.isArray(center) &&
+      center.length === 2 &&
+      typeof center[0] === "number" &&
+      typeof center[1] === "number" &&
+      !isNaN(center[0]) &&
+      !isNaN(center[1])
+    ) {
+      map.flyTo(center, 15, { duration: 1 });
+    }
   }, [center, map]);
 
   return null;
