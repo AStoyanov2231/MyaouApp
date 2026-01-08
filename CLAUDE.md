@@ -61,7 +61,7 @@ src/
 - Server actions in `actions.ts` handle all auth operations
 
 **Protected Routes**:
-- `/places` - Map-based place discovery (desktop: Leaflet map + overlay, mobile: grid)
+- `/places` - Place discovery (desktop: Leaflet map + overlay, mobile: grid view only - map not rendered)
 - `/messages` - Unified inbox showing DMs and current place membership
 - `/messages/[threadId]` - DM conversation with real-time updates
 - `/messages/place/[placeId]` - Place chat room with real-time updates
@@ -214,9 +214,10 @@ Client-side via `src/lib/image-compression.ts`:
 ## Leaflet Map Setup
 
 - SSR disabled via Next.js dynamic import
+- **Desktop-only rendering**: Map is conditionally rendered via `isDesktop` state (not CSS hiding) to prevent Leaflet initialization errors on mobile
 - Marker icons in `public/leaflet/`
 - Icon path fix for Webpack bundling in MapView.tsx
-- RecenterMap component for smooth flyTo animation
+- RecenterMap component for smooth flyTo animation with coordinate validation
 - Geolocation API with San Francisco fallback
 
 ## Environment Variables

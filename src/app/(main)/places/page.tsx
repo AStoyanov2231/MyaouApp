@@ -19,6 +19,15 @@ export default function PlacesPage() {
   const [userLocation, setUserLocation] = useState<[number, number] | null>(null);
   const [popularPlaces, setPopularPlaces] = useState<Place[]>([]);
   const [popularLoading, setPopularLoading] = useState(false);
+  const [isDesktop, setIsDesktop] = useState(false);
+
+  // Detect desktop to conditionally render map (prevents Leaflet errors on mobile)
+  useEffect(() => {
+    const checkDesktop = () => setIsDesktop(window.innerWidth >= 768);
+    checkDesktop();
+    window.addEventListener("resize", checkDesktop);
+    return () => window.removeEventListener("resize", checkDesktop);
+  }, []);
 
   // Fetch popular places on mount
   useEffect(() => {
@@ -103,29 +112,32 @@ export default function PlacesPage() {
 
   return (
     <>
-      {/* Desktop View: Map + Overlay */}
-      <div className="hidden md:flex md:flex-1 relative h-screen">
-        <MapContainer
-          places={displayPlaces}
-          center={mapCenter}
-          zoom={13}
-          selectedPlace={selectedPlace}
-          onMarkerClick={handlePlaceSelect}
-        />
-        <FloatingOverlay
-          mode={overlayMode}
-          selectedPlace={selectedPlace}
-          query={query}
-          onQueryChange={setQuery}
-          suggestions={suggestions}
-          loading={loading}
-          onSuggestionClick={handleSuggestionClick}
-          onBack={handleBack}
-        />
-      </div>
+      {/* Desktop View: Map + Overlay (conditionally rendered to prevent Leaflet errors) */}
+      {isDesktop && (
+        <div className="flex flex-1 relative h-screen">
+          <MapContainer
+            places={displayPlaces}
+            center={mapCenter}
+            zoom={13}
+            selectedPlace={selectedPlace}
+            onMarkerClick={handlePlaceSelect}
+          />
+          <FloatingOverlay
+            mode={overlayMode}
+            selectedPlace={selectedPlace}
+            query={query}
+            onQueryChange={setQuery}
+            suggestions={suggestions}
+            loading={loading}
+            onSuggestionClick={handleSuggestionClick}
+            onBack={handleBack}
+          />
+        </div>
+      )}
 
       {/* Mobile View: Grid */}
-      <div className="md:hidden p-4 max-w-4xl mx-auto">
+      {!isDesktop && (
+        <div className="p-4 max-w-4xl mx-auto">
         <h1 className="text-2xl font-bold mb-4">Discover Places</h1>
         <div className="relative mb-6">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground h-5 w-5" />
@@ -181,7 +193,8 @@ export default function PlacesPage() {
         {!popularLoading && query.length < 2 && popularPlaces.length === 0 && (
           <p className="text-center text-muted-foreground py-8">No popular places available</p>
         )}
-      </div>
+        </div>
+      )}
     </>
   );
 }
