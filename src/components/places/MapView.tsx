@@ -4,42 +4,64 @@ import { MapContainer, TileLayer, Marker, Popup, useMap } from "react-leaflet";
 import L from "leaflet";
 import { Place } from "@/types/database";
 
-// Fix Leaflet default marker icon issue in Next.js
-delete (L.Icon.Default.prototype as any)._getIconUrl;
-L.Icon.Default.mergeOptions({
-  iconRetinaUrl: "/leaflet/marker-icon-2x.png",
-  iconUrl: "/leaflet/marker-icon.png",
-  shadowUrl: "/leaflet/marker-shadow.png",
-});
+// Lazy initialization for Leaflet icons
+// Icons are created on first access to avoid race conditions during module load
+let iconsInitialized = false;
+let userMarkerIcon: L.DivIcon | null = null;
+let brandMarkerIcon: L.DivIcon | null = null;
 
-// User location marker with "You" text
-const userMarkerIcon = new L.DivIcon({
-  className: "user-marker",
-  html: `<div style="display:flex;flex-direction:column;align-items:center"><span style="font-size:12px;font-weight:600;color:#6867B0">You</span><div style="width:12px;height:12px;background:#6867B0;border:2px solid white;border-radius:50%;box-shadow:0 2px 4px rgba(0,0,0,0.3)"></div></div>`,
-  iconSize: [40, 30],
-  iconAnchor: [20, 30],
-});
+function initializeIcons() {
+  if (iconsInitialized) return;
 
-// Brand-colored marker icon for selected place
-const brandMarkerIcon = new L.DivIcon({
-  className: "brand-marker",
-  html: `
-    <svg width="36" height="48" viewBox="0 0 36 48" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <path d="M18 0C8.06 0 0 8.06 0 18c0 13.5 18 30 18 30s18-16.5 18-30c0-9.94-8.06-18-18-18z" fill="#6867B0"/>
-      <path d="M18 0C8.06 0 0 8.06 0 18c0 13.5 18 30 18 30s18-16.5 18-30c0-9.94-8.06-18-18-18z" fill="url(#gradient)"/>
-      <circle cx="18" cy="18" r="8" fill="white"/>
-      <defs>
-        <linearGradient id="gradient" x1="0" y1="0" x2="36" y2="48" gradientUnits="userSpaceOnUse">
-          <stop offset="0%" stop-color="#6867B0"/>
-          <stop offset="100%" stop-color="#3ECFCF"/>
-        </linearGradient>
-      </defs>
-    </svg>
-  `,
-  iconSize: [36, 48],
-  iconAnchor: [18, 48],
-  popupAnchor: [0, -48],
-});
+  // Fix Leaflet default marker icon issue in Next.js
+  delete (L.Icon.Default.prototype as any)._getIconUrl;
+  L.Icon.Default.mergeOptions({
+    iconRetinaUrl: "/leaflet/marker-icon-2x.png",
+    iconUrl: "/leaflet/marker-icon.png",
+    shadowUrl: "/leaflet/marker-shadow.png",
+  });
+
+  // User location marker with "You" text
+  userMarkerIcon = new L.DivIcon({
+    className: "user-marker",
+    html: `<div style="display:flex;flex-direction:column;align-items:center"><span style="font-size:12px;font-weight:600;color:#6867B0">You</span><div style="width:12px;height:12px;background:#6867B0;border:2px solid white;border-radius:50%;box-shadow:0 2px 4px rgba(0,0,0,0.3)"></div></div>`,
+    iconSize: [40, 30],
+    iconAnchor: [20, 30],
+  });
+
+  // Brand-colored marker icon for selected place
+  brandMarkerIcon = new L.DivIcon({
+    className: "brand-marker",
+    html: `
+      <svg width="36" height="48" viewBox="0 0 36 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M18 0C8.06 0 0 8.06 0 18c0 13.5 18 30 18 30s18-16.5 18-30c0-9.94-8.06-18-18-18z" fill="#6867B0"/>
+        <path d="M18 0C8.06 0 0 8.06 0 18c0 13.5 18 30 18 30s18-16.5 18-30c0-9.94-8.06-18-18-18z" fill="url(#gradient)"/>
+        <circle cx="18" cy="18" r="8" fill="white"/>
+        <defs>
+          <linearGradient id="gradient" x1="0" y1="0" x2="36" y2="48" gradientUnits="userSpaceOnUse">
+            <stop offset="0%" stop-color="#6867B0"/>
+            <stop offset="100%" stop-color="#3ECFCF"/>
+          </linearGradient>
+        </defs>
+      </svg>
+    `,
+    iconSize: [36, 48],
+    iconAnchor: [18, 48],
+    popupAnchor: [0, -48],
+  });
+
+  iconsInitialized = true;
+}
+
+function getUserMarkerIcon(): L.DivIcon {
+  initializeIcons();
+  return userMarkerIcon!;
+}
+
+function getBrandMarkerIcon(): L.DivIcon {
+  initializeIcons();
+  return brandMarkerIcon!;
+}
 
 // Component to handle map recentering when center prop changes
 function RecenterMap({ center }: { center: [number, number] }) {
@@ -101,7 +123,7 @@ export default function MapView({
 
       {/* User location marker */}
       {userLocation && (
-        <Marker position={userLocation} icon={userMarkerIcon} />
+        <Marker position={userLocation} icon={getUserMarkerIcon()} />
       )}
 
       {/* Render markers for places in the list */}
@@ -111,7 +133,7 @@ export default function MapView({
           <Marker
             key={place.id}
             position={[place.latitude, place.longitude]}
-            icon={isSelected ? brandMarkerIcon : undefined}
+            icon={isSelected ? getBrandMarkerIcon() : undefined}
             eventHandlers={{
               click: () => onMarkerClick(place),
             }}
@@ -133,7 +155,7 @@ export default function MapView({
         <Marker
           key={`selected-${selectedPlace.id}`}
           position={[selectedPlace.latitude, selectedPlace.longitude]}
-          icon={brandMarkerIcon}
+          icon={getBrandMarkerIcon()}
           eventHandlers={{
             click: () => onMarkerClick(selectedPlace),
           }}
