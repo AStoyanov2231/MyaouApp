@@ -62,6 +62,12 @@ export function MobilePlacesView({
     setViewState("idle");
   };
 
+  // Wrap suggestion click to clear the search query on mobile
+  const handleSuggestionClick = (prediction: AutocompletePrediction) => {
+    onQueryChange(""); // Clear the search bar
+    onSuggestionClick(prediction);
+  };
+
   return (
     <div className="relative h-[calc(100vh-4rem)] w-full overflow-hidden">
       {/* Full-screen map as base layer */}
@@ -89,7 +95,7 @@ export function MobilePlacesView({
           onQueryChange={onQueryChange}
           suggestions={suggestions}
           loading={loading}
-          onSuggestionClick={onSuggestionClick}
+          onSuggestionClick={handleSuggestionClick}
         />
       )}
 
