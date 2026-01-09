@@ -38,7 +38,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
 
   if (!profile) {
     console.log("Profile missing for user, creating...", { userId: user.id });
-    const serviceClient = await createServiceClient();
+    const serviceClient = createServiceClient();
     const { error: profileError } = await serviceClient.from("profiles").upsert({
       id: user.id,
       username: `user_${user.id.slice(0, 8)}_${Date.now().toString(36)}`,

@@ -19,7 +19,7 @@ export async function login(formData: FormData) {
       .single();
 
     if (!existingProfile) {
-      const serviceClient = await createServiceClient();
+      const serviceClient = createServiceClient();
       const username = data.user.user_metadata?.username || `user_${data.user.id.slice(0, 8)}`;
       await serviceClient.from("profiles").insert({
         id: data.user.id,
@@ -76,7 +76,7 @@ export async function signup(formData: FormData) {
   }
 
   // Explicitly create profile using service client (bypasses RLS)
-  const serviceClient = await createServiceClient();
+  const serviceClient = createServiceClient();
   const { error: profileError } = await serviceClient.from("profiles").insert({
     id: data.user.id,
     username,

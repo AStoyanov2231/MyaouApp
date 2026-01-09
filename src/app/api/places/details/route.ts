@@ -103,7 +103,7 @@ export async function GET(request: NextRequest) {
 
     // Use service client to upsert (bypasses RLS)
     // Chain .select() to get inserted data in single query (optimization)
-    const serviceClient = await createServiceClient();
+    const serviceClient = createServiceClient();
     const { data: insertedPlace, error: upsertError } = await serviceClient
       .from("places")
       .upsert([placeData], {
