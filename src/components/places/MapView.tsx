@@ -1,67 +1,8 @@
 "use client";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { MapContainer, TileLayer, Marker, Popup, useMap } from "react-leaflet";
 import L from "leaflet";
 import { Place } from "@/types/database";
-
-// Lazy initialization for Leaflet icons
-// Icons are created on first access to avoid race conditions during module load
-let iconsInitialized = false;
-let userMarkerIcon: L.DivIcon | null = null;
-let brandMarkerIcon: L.DivIcon | null = null;
-
-function initializeIcons() {
-  if (iconsInitialized) return;
-
-  // Fix Leaflet default marker icon issue in Next.js
-  delete (L.Icon.Default.prototype as any)._getIconUrl;
-  L.Icon.Default.mergeOptions({
-    iconRetinaUrl: "/leaflet/marker-icon-2x.png",
-    iconUrl: "/leaflet/marker-icon.png",
-    shadowUrl: "/leaflet/marker-shadow.png",
-  });
-
-  // User location marker with "You" text
-  userMarkerIcon = new L.DivIcon({
-    className: "user-marker",
-    html: `<div style="display:flex;flex-direction:column;align-items:center"><span style="font-size:12px;font-weight:600;color:#6867B0">You</span><div style="width:12px;height:12px;background:#6867B0;border:2px solid white;border-radius:50%;box-shadow:0 2px 4px rgba(0,0,0,0.3)"></div></div>`,
-    iconSize: [40, 30],
-    iconAnchor: [20, 30],
-  });
-
-  // Brand-colored marker icon for selected place
-  brandMarkerIcon = new L.DivIcon({
-    className: "brand-marker",
-    html: `
-      <svg width="36" height="48" viewBox="0 0 36 48" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <path d="M18 0C8.06 0 0 8.06 0 18c0 13.5 18 30 18 30s18-16.5 18-30c0-9.94-8.06-18-18-18z" fill="#6867B0"/>
-        <path d="M18 0C8.06 0 0 8.06 0 18c0 13.5 18 30 18 30s18-16.5 18-30c0-9.94-8.06-18-18-18z" fill="url(#gradient)"/>
-        <circle cx="18" cy="18" r="8" fill="white"/>
-        <defs>
-          <linearGradient id="gradient" x1="0" y1="0" x2="36" y2="48" gradientUnits="userSpaceOnUse">
-            <stop offset="0%" stop-color="#6867B0"/>
-            <stop offset="100%" stop-color="#3ECFCF"/>
-          </linearGradient>
-        </defs>
-      </svg>
-    `,
-    iconSize: [36, 48],
-    iconAnchor: [18, 48],
-    popupAnchor: [0, -48],
-  });
-
-  iconsInitialized = true;
-}
-
-function getUserMarkerIcon(): L.DivIcon {
-  initializeIcons();
-  return userMarkerIcon!;
-}
-
-function getBrandMarkerIcon(): L.DivIcon {
-  initializeIcons();
-  return brandMarkerIcon!;
-}
 
 // Component to handle map recentering when center prop changes
 function RecenterMap({ center }: { center: [number, number] }) {
@@ -74,6 +15,64 @@ function RecenterMap({ center }: { center: [number, number] }) {
   }, [center, map]);
 
   return null;
+}
+
+// Custom hook to create and manage Leaflet icons
+// Icons are created inside useEffect to ensure Leaflet is fully ready
+function useLeafletIcons() {
+  const [icons, setIcons] = useState<{
+    user: L.DivIcon;
+    brand: L.DivIcon;
+    default: L.DivIcon;
+  } | null>(null);
+
+  useEffect(() => {
+    // Create icons only after component mounts (Leaflet is ready)
+    const userIcon = new L.DivIcon({
+      className: "user-marker",
+      html: `<div style="display:flex;flex-direction:column;align-items:center"><span style="font-size:12px;font-weight:600;color:#6867B0">You</span><div style="width:12px;height:12px;background:#6867B0;border:2px solid white;border-radius:50%;box-shadow:0 2px 4px rgba(0,0,0,0.3)"></div></div>`,
+      iconSize: [40, 30],
+      iconAnchor: [20, 30],
+    });
+
+    const brandIcon = new L.DivIcon({
+      className: "brand-marker",
+      html: `
+        <svg width="36" height="48" viewBox="0 0 36 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M18 0C8.06 0 0 8.06 0 18c0 13.5 18 30 18 30s18-16.5 18-30c0-9.94-8.06-18-18-18z" fill="#6867B0"/>
+          <path d="M18 0C8.06 0 0 8.06 0 18c0 13.5 18 30 18 30s18-16.5 18-30c0-9.94-8.06-18-18-18z" fill="url(#gradient)"/>
+          <circle cx="18" cy="18" r="8" fill="white"/>
+          <defs>
+            <linearGradient id="gradient" x1="0" y1="0" x2="36" y2="48" gradientUnits="userSpaceOnUse">
+              <stop offset="0%" stop-color="#6867B0"/>
+              <stop offset="100%" stop-color="#3ECFCF"/>
+            </linearGradient>
+          </defs>
+        </svg>
+      `,
+      iconSize: [36, 48],
+      iconAnchor: [18, 48],
+      popupAnchor: [0, -48],
+    });
+
+    // Default marker icon using DivIcon to avoid L.Icon.Default issues
+    const defaultIcon = new L.DivIcon({
+      className: "default-marker",
+      html: `
+        <svg width="25" height="41" viewBox="0 0 25 41" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M12.5 0C5.6 0 0 5.6 0 12.5c0 9.4 12.5 20.8 12.5 20.8S25 21.9 25 12.5C25 5.6 19.4 0 12.5 0z" fill="#2563eb"/>
+          <circle cx="12.5" cy="12.5" r="5" fill="white"/>
+        </svg>
+      `,
+      iconSize: [25, 41],
+      iconAnchor: [12, 41],
+      popupAnchor: [0, -41],
+    });
+
+    setIcons({ user: userIcon, brand: brandIcon, default: defaultIcon });
+  }, []);
+
+  return icons;
 }
 
 type MapViewProps = {
@@ -93,6 +92,8 @@ export default function MapView({
   onMarkerClick,
   userLocation,
 }: MapViewProps) {
+  const icons = useLeafletIcons();
+
   // Filter out places without coordinates
   const validPlaces = places.filter(
     (place) => place.latitude && place.longitude
@@ -121,54 +122,59 @@ export default function MapView({
       />
       <RecenterMap center={center} />
 
-      {/* User location marker */}
-      {userLocation && (
-        <Marker position={userLocation} icon={getUserMarkerIcon()} />
-      )}
+      {/* Only render markers after icons are initialized */}
+      {icons && (
+        <>
+          {/* User location marker */}
+          {userLocation && (
+            <Marker position={userLocation} icon={icons.user} />
+          )}
 
-      {/* Render markers for places in the list */}
-      {validPlaces.map((place) => {
-        const isSelected = selectedPlace?.id === place.id;
-        return (
-          <Marker
-            key={place.id}
-            position={[place.latitude, place.longitude]}
-            icon={isSelected ? getBrandMarkerIcon() : undefined}
-            eventHandlers={{
-              click: () => onMarkerClick(place),
-            }}
-          >
-            <Popup>
-              <div className="text-sm">
-                <h4 className="font-semibold mb-1">{place.name}</h4>
-                {place.formatted_address && (
-                  <p className="text-muted-foreground text-xs">{place.formatted_address}</p>
-                )}
-              </div>
-            </Popup>
-          </Marker>
-        );
-      })}
+          {/* Render markers for places in the list */}
+          {validPlaces.map((place) => {
+            const isSelected = selectedPlace?.id === place.id;
+            return (
+              <Marker
+                key={place.id}
+                position={[place.latitude, place.longitude]}
+                icon={isSelected ? icons.brand : icons.default}
+                eventHandlers={{
+                  click: () => onMarkerClick(place),
+                }}
+              >
+                <Popup>
+                  <div className="text-sm">
+                    <h4 className="font-semibold mb-1">{place.name}</h4>
+                    {place.formatted_address && (
+                      <p className="text-muted-foreground text-xs">{place.formatted_address}</p>
+                    )}
+                  </div>
+                </Popup>
+              </Marker>
+            );
+          })}
 
-      {/* Render selected place marker if not in the list */}
-      {selectedPlace && !selectedInList && selectedPlace.latitude && selectedPlace.longitude && (
-        <Marker
-          key={`selected-${selectedPlace.id}`}
-          position={[selectedPlace.latitude, selectedPlace.longitude]}
-          icon={getBrandMarkerIcon()}
-          eventHandlers={{
-            click: () => onMarkerClick(selectedPlace),
-          }}
-        >
-          <Popup>
-            <div className="text-sm">
-              <h4 className="font-semibold mb-1">{selectedPlace.name}</h4>
-              {selectedPlace.formatted_address && (
-                <p className="text-muted-foreground text-xs">{selectedPlace.formatted_address}</p>
-              )}
-            </div>
-          </Popup>
-        </Marker>
+          {/* Render selected place marker if not in the list */}
+          {selectedPlace && !selectedInList && selectedPlace.latitude && selectedPlace.longitude && (
+            <Marker
+              key={`selected-${selectedPlace.id}`}
+              position={[selectedPlace.latitude, selectedPlace.longitude]}
+              icon={icons.brand}
+              eventHandlers={{
+                click: () => onMarkerClick(selectedPlace),
+              }}
+            >
+              <Popup>
+                <div className="text-sm">
+                  <h4 className="font-semibold mb-1">{selectedPlace.name}</h4>
+                  {selectedPlace.formatted_address && (
+                    <p className="text-muted-foreground text-xs">{selectedPlace.formatted_address}</p>
+                  )}
+                </div>
+              </Popup>
+            </Marker>
+          )}
+        </>
       )}
     </MapContainer>
   );
