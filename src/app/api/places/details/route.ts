@@ -16,6 +16,16 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: "Place ID required" }, { status: 400 });
   }
 
+  // Validate Google Place ID format (alphanumeric with some special chars)
+  if (!/^[a-zA-Z0-9_-]+$/.test(placeId)) {
+    return NextResponse.json({ error: "Invalid Place ID format" }, { status: 400 });
+  }
+
+  // Validate session token format if provided
+  if (sessionToken && !/^[a-zA-Z0-9_-]+$/.test(sessionToken)) {
+    return NextResponse.json({ error: "Invalid session token format" }, { status: 400 });
+  }
+
   // Check database cache first
   const { data: cachedPlace } = await supabase
     .from("places")
@@ -103,10 +113,22 @@ export async function GET(request: NextRequest) {
 
     // Use service client to upsert (bypasses RLS)
     const serviceClient = await createServiceClient();
-    await serviceClient.from("places").upsert([placeData], {
+    const { error: upsertError } = await serviceClient.from("places").upsert([placeData], {
       onConflict: "google_place_id",
       ignoreDuplicates: false,
     });
+
+    if (upsertError) {
+      console.error("Place upsert failed:", { placeId, error: upsertError.message });
+      // If upsert fails, try to return cached place
+      if (cachedPlace) {
+        return NextResponse.json({
+          place: cachedPlace,
+          source: "cache",
+        });
+      }
+      return NextResponse.json({ error: "Failed to save place data" }, { status: 500 });
+    }
 
     // Fetch the complete place record with all database fields
     const { data: insertedPlace } = await supabase
@@ -114,6 +136,17 @@ export async function GET(request: NextRequest) {
       .select("*")
       .eq("google_place_id", placeData.google_place_id)
       .single();
+
+    if (!insertedPlace) {
+      console.error("Place not found after upsert:", { placeId });
+      if (cachedPlace) {
+        return NextResponse.json({
+          place: cachedPlace,
+          source: "cache",
+        });
+      }
+      return NextResponse.json({ error: "Failed to retrieve place data" }, { status: 500 });
+    }
 
     return NextResponse.json({
       place: insertedPlace,
