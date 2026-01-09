@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createClient, createServiceClient } from "@/lib/supabase/server";
+import { createClient } from "@/lib/supabase/server";
 
 export async function GET(request: NextRequest) {
   const supabase = await createClient();
@@ -87,8 +87,9 @@ export async function GET(request: NextRequest) {
 
     const place = await googleResponse.json();
 
-    // Transform Google response to our database schema
+    // Transform Google response to our schema (without saving to DB)
     const placeData = {
+      id: place.id, // Use google_place_id as temporary ID
       google_place_id: place.id,
       name: place.displayName?.text || "Unknown",
       formatted_address: place.formattedAddress,
@@ -98,46 +99,13 @@ export async function GET(request: NextRequest) {
       photo_reference: place.photos?.[0]?.name,
       rating: place.rating,
       user_ratings_total: place.userRatingCount,
-      cache_expires_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
+      member_count: 0,
+      message_count: 0,
+      is_active: false,
     };
 
-    // Use service client to upsert (bypasses RLS)
-    // Chain .select() to get inserted data in single query (optimization)
-    const serviceClient = createServiceClient();
-    const { data: insertedPlace, error: upsertError } = await serviceClient
-      .from("places")
-      .upsert([placeData], {
-        onConflict: "google_place_id",
-        ignoreDuplicates: false,
-      })
-      .select()
-      .single();
-
-    if (upsertError) {
-      console.error("Place upsert failed:", { placeId, error: upsertError.message });
-      // If upsert fails, try to return cached place
-      if (cachedPlace) {
-        return NextResponse.json({
-          place: cachedPlace,
-          source: "cache",
-        });
-      }
-      return NextResponse.json({ error: "Failed to save place data" }, { status: 500 });
-    }
-
-    if (!insertedPlace) {
-      console.error("Place not found after upsert:", { placeId });
-      if (cachedPlace) {
-        return NextResponse.json({
-          place: cachedPlace,
-          source: "cache",
-        });
-      }
-      return NextResponse.json({ error: "Failed to retrieve place data" }, { status: 500 });
-    }
-
     return NextResponse.json({
-      place: insertedPlace,
+      place: placeData,
       source: "google",
     });
   } catch (error) {
