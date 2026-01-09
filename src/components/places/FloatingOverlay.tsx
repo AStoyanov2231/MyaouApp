@@ -27,9 +27,26 @@ export function FloatingOverlay({
   onSuggestionClick,
   onBack,
 }: FloatingOverlayProps) {
+  // Search mode - minimal floating search bar
+  if (mode === "search") {
+    return (
+      <div className="absolute top-6 left-6 z-50 w-[380px] max-w-[calc(100%-3rem)]">
+        <div className="bg-card/95 backdrop-blur-xl rounded-2xl shadow-xl shadow-black/10 border border-border/50 animate-[fadeIn_0.3s_ease-out]">
+          <SearchView
+            query={query}
+            onQueryChange={onQueryChange}
+            suggestions={suggestions}
+            loading={loading}
+            onSuggestionClick={onSuggestionClick}
+          />
+        </div>
+      </div>
+    );
+  }
+
+  // Loading and Details modes - card with decorative elements
   return (
     <div className="absolute top-6 left-6 z-50 w-[420px] max-w-[calc(100%-3rem)] max-h-[calc(100vh-3rem)]">
-      {/* Gradient border effect */}
       <div className="relative p-[2px] rounded-3xl gradient-brand-border shadow-2xl shadow-primary/20 animate-[fadeIn_0.4s_ease-out]">
         <div className="bg-card rounded-3xl overflow-hidden backdrop-blur-xl h-full">
           <div className="relative overflow-hidden">
@@ -39,15 +56,7 @@ export function FloatingOverlay({
 
             {/* Content */}
             <div className="relative z-10">
-              {mode === "search" ? (
-                <SearchView
-                  query={query}
-                  onQueryChange={onQueryChange}
-                  suggestions={suggestions}
-                  loading={loading}
-                  onSuggestionClick={onSuggestionClick}
-                />
-              ) : mode === "loading" ? (
+              {mode === "loading" ? (
                 <div className="p-6 flex flex-col items-center justify-center min-h-[300px]">
                   <div className="relative mb-4">
                     <Loader2 className="h-8 w-8 animate-spin text-primary" />

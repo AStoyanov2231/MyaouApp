@@ -73,6 +73,7 @@ export async function GET(request: NextRequest) {
         main_text: suggestion.placePrediction?.structuredFormat?.mainText?.text || "",
         secondary_text: suggestion.placePrediction?.structuredFormat?.secondaryText?.text || "",
       },
+      types: suggestion.placePrediction?.types || [],
     })) || [];
 
     return NextResponse.json({ predictions });

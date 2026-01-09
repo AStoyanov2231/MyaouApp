@@ -11,7 +11,7 @@ import { MapContainer } from "./MapContainer";
 import { MobileSearchBar } from "./MobileSearchBar";
 import { MobileBottomPanel } from "./MobileBottomPanel";
 
-type MobileViewState = "idle" | "searching" | "loading" | "details";
+type MobileViewState = "idle" | "loading" | "details";
 
 type MobilePlacesViewProps = {
   query: string;
@@ -48,25 +48,10 @@ export function MobilePlacesView({
       setViewState("loading");
     } else if (overlayMode === "details" && selectedPlace) {
       setViewState("details");
-    } else if (viewState === "loading" || viewState === "details") {
-      // Only reset to idle if we were in loading/details
+    } else {
       setViewState("idle");
     }
   }, [overlayMode, selectedPlace]);
-
-  const handleExpandSearch = () => {
-    setViewState("searching");
-  };
-
-  const handleCollapseSearch = () => {
-    setViewState(selectedPlace ? "details" : "idle");
-  };
-
-  const handleSuggestionClick = (prediction: AutocompletePrediction) => {
-    // Let parent handle the async flow
-    onSuggestionClick(prediction);
-    // State will update via overlayMode sync
-  };
 
   const handleCloseDetails = () => {
     onBack();
@@ -86,31 +71,14 @@ export function MobilePlacesView({
         />
       </div>
 
-      {/* Top search bar - visible in idle and details states */}
-      {(viewState === "idle" || viewState === "details") && (
+      {/* Top search bar - always visible except during loading */}
+      {viewState !== "loading" && (
         <MobileSearchBar
           query={query}
           onQueryChange={onQueryChange}
-          isExpanded={false}
-          onExpand={handleExpandSearch}
-          onCollapse={handleCollapseSearch}
           suggestions={suggestions}
           loading={loading}
-          onSuggestionClick={handleSuggestionClick}
-        />
-      )}
-
-      {/* Expanded search overlay */}
-      {viewState === "searching" && (
-        <MobileSearchBar
-          query={query}
-          onQueryChange={onQueryChange}
-          isExpanded={true}
-          onExpand={handleExpandSearch}
-          onCollapse={handleCollapseSearch}
-          suggestions={suggestions}
-          loading={loading}
-          onSuggestionClick={handleSuggestionClick}
+          onSuggestionClick={onSuggestionClick}
         />
       )}
 
