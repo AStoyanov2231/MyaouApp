@@ -43,7 +43,7 @@ export function Sidebar({ profile }: { profile: Profile | null }) {
             )}
           >
             <div className="relative">
-              <Icon size={20} />
+              <Icon className="h-5 w-5" />
               {href === "/messages" && unreadCount > 0 && (
                 <Badge className="absolute -top-1 -right-2 h-4 min-w-[16px] px-1 flex items-center justify-center rounded-full text-[10px] bg-destructive">
                   {unreadCount > 9 ? "9+" : unreadCount}
@@ -69,7 +69,7 @@ export function Sidebar({ profile }: { profile: Profile | null }) {
         </div>
         <form action={signOut}>
           <Button variant="ghost" className="w-full justify-start" size="sm">
-            <LogOut size={16} /> Sign out
+            <LogOut className="h-4 w-4" /> Sign out
           </Button>
         </form>
       </div>

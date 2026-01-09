@@ -1,12 +1,16 @@
 "use client";
+
 import dynamic from "next/dynamic";
+
+import { Skeleton } from "@/components/ui/skeleton";
+
 import { Place } from "@/types/database";
 
 const MapView = dynamic(() => import("./MapView"), {
   ssr: false,
   loading: () => (
-    <div className="w-full h-full bg-gray-200 animate-pulse flex items-center justify-center">
-      <div className="text-gray-500">Loading map...</div>
+    <div className="w-full h-full flex items-center justify-center">
+      <Skeleton className="w-full h-full" />
     </div>
   ),
 });
@@ -17,6 +21,7 @@ type MapContainerProps = {
   zoom: number;
   selectedPlace: Place | null;
   onMarkerClick: (place: Place) => void;
+  userLocation: [number, number] | null;
 };
 
 export function MapContainer({
@@ -25,6 +30,7 @@ export function MapContainer({
   zoom,
   selectedPlace,
   onMarkerClick,
+  userLocation,
 }: MapContainerProps) {
   return (
     <div className="w-full h-full relative z-0">
@@ -34,6 +40,7 @@ export function MapContainer({
         zoom={zoom}
         selectedPlace={selectedPlace}
         onMarkerClick={onMarkerClick}
+        userLocation={userLocation}
       />
     </div>
   );

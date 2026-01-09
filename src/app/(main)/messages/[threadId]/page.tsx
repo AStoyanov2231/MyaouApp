@@ -188,7 +188,7 @@ export default function DMConversationPage({ params }: { params: Promise<{ threa
           className="flex-1 h-10"
         />
         <Button type="submit" disabled={!input.trim() || sending}>
-          {sending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send size={18} />}
+          {sending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-5 w-5" />}
         </Button>
       </form>
     </div>

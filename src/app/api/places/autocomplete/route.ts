@@ -22,9 +22,9 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: "Session token required" }, { status: 400 });
   }
 
-  // If no Google API key, return empty predictions
+  // If no Google API key, return error
   if (!process.env.GOOGLE_PLACES_API_KEY || process.env.GOOGLE_PLACES_API_KEY === "your_google_api_key") {
-    return NextResponse.json({ predictions: [] });
+    return NextResponse.json({ error: "Google Places API key not configured" }, { status: 500 });
   }
 
   try {
@@ -60,7 +60,7 @@ export async function GET(request: NextRequest) {
 
     if (!googleResponse.ok) {
       console.error("Google Autocomplete API error:", await googleResponse.text());
-      return NextResponse.json({ predictions: [] });
+      return NextResponse.json({ error: "Failed to fetch suggestions" }, { status: 502 });
     }
 
     const data = await googleResponse.json();
@@ -73,11 +73,12 @@ export async function GET(request: NextRequest) {
         main_text: suggestion.placePrediction?.structuredFormat?.mainText?.text || "",
         secondary_text: suggestion.placePrediction?.structuredFormat?.secondaryText?.text || "",
       },
+      types: suggestion.placePrediction?.types || [],
     })) || [];
 
     return NextResponse.json({ predictions });
   } catch (error) {
     console.error("Autocomplete error:", error);
-    return NextResponse.json({ predictions: [] });
+    return NextResponse.json({ error: "Failed to fetch suggestions" }, { status: 500 });
   }
 }

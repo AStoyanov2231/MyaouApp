@@ -67,9 +67,12 @@ export function useAuth() {
 
     const initializeAuth = async () => {
       try {
-        const { data: { user: authUser } } = await supabase.auth.getUser();
+        // Use getSession() instead of getUser() - reads from local storage without network request
+        // Middleware already validated the session, so we can trust it
+        const { data: { session } } = await supabase.auth.getSession();
         if (!isMounted) return;
 
+        const authUser = session?.user ?? null;
         setUser(authUser);
 
         if (authUser) {
@@ -122,20 +125,9 @@ export function useAuth() {
       }
     );
 
-    // Refresh session when tab becomes visible (handles stale sessions)
-    const handleVisibilityChange = () => {
-      if (document.visibilityState === "visible") {
-        // Silently refresh the session - Supabase handles token refresh automatically
-        supabase.auth.getSession();
-      }
-    };
-
-    document.addEventListener("visibilitychange", handleVisibilityChange);
-
     return () => {
       isMounted = false;
       subscription.unsubscribe();
-      document.removeEventListener("visibilitychange", handleVisibilityChange);
     };
   }, [fetchOrCreateProfile]);
 

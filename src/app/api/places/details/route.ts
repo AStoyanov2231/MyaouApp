@@ -112,7 +112,9 @@ export async function GET(request: NextRequest) {
     };
 
     // Use service client to upsert (bypasses RLS)
+    // Chain .select() to get inserted data in single query (optimization)
     const serviceClient = await createServiceClient();
+<<<<<<< HEAD
     const { error: upsertError } = await serviceClient.from("places").upsert([placeData], {
       onConflict: "google_place_id",
       ignoreDuplicates: false,
@@ -132,11 +134,18 @@ export async function GET(request: NextRequest) {
 
     // Fetch the complete place record with all database fields
     const { data: insertedPlace } = await supabase
+=======
+    const { data: insertedPlace, error: upsertError } = await serviceClient
+>>>>>>> 425326dc6d63e52e2035f56209d6a09148b00c45
       .from("places")
-      .select("*")
-      .eq("google_place_id", placeData.google_place_id)
+      .upsert([placeData], {
+        onConflict: "google_place_id",
+        ignoreDuplicates: false,
+      })
+      .select()
       .single();
 
+<<<<<<< HEAD
     if (!insertedPlace) {
       console.error("Place not found after upsert:", { placeId });
       if (cachedPlace) {
@@ -148,8 +157,22 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: "Failed to retrieve place data" }, { status: 500 });
     }
 
+=======
+    if (upsertError) {
+      console.error("Upsert error:", upsertError);
+    }
+
+    // Return insertedPlace if found, otherwise return transformed placeData with defaults
+    const responsePlace = insertedPlace || {
+      ...placeData,
+      id: null,
+      member_count: 0,
+      message_count: 0,
+    };
+
+>>>>>>> 425326dc6d63e52e2035f56209d6a09148b00c45
     return NextResponse.json({
-      place: insertedPlace,
+      place: responsePlace,
       source: "google",
     });
   } catch (error) {

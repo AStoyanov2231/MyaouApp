@@ -1,9 +1,14 @@
 "use client";
+
 import { useState } from "react";
 import Link from "next/link";
-import { AtSign, Lock, Loader2 } from "lucide-react";
+
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { InputWithIcon } from "@/components/ui/input-with-icon";
+
+import { AtSign, Lock, Loader2, AlertCircle } from "lucide-react";
+
 import { login } from "../actions";
 
 export default function LoginPage() {
@@ -22,7 +27,7 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#6867B0] flex items-center justify-center p-4">
+    <div className="min-h-screen bg-primary flex items-center justify-center p-4">
       <div className="w-full max-w-md">
         {/* Header */}
         <div className="text-center mb-8">
@@ -36,7 +41,7 @@ export default function LoginPage() {
             type="email"
             placeholder="Email"
             required
-            icon={<AtSign className="w-5 h-5" />}
+            icon={<AtSign className="h-5 w-5" />}
             className="border-none"
           />
           <InputWithIcon
@@ -44,20 +49,21 @@ export default function LoginPage() {
             type="password"
             placeholder="Password"
             required
-            icon={<Lock className="w-5 h-5" />}
+            icon={<Lock className="h-5 w-5" />}
             className="border-none"
           />
           {error && (
-            <div className="text-red-500 text-sm bg-red-50 border border-red-200 rounded-lg p-3">
-              {error}
-            </div>
+            <Alert variant="destructive">
+              <AlertCircle className="h-4 w-4" />
+              <AlertDescription>{error}</AlertDescription>
+            </Alert>
           )}
           <Button
             type="submit"
-            className="w-full rounded-full bg-cyan-400 hover:bg-cyan-300 text-gray-900 font-semibold h-12 text-base"
+            className="w-full rounded-full bg-accent hover:bg-accent/90 text-foreground font-semibold h-12 text-base"
             disabled={loading}
           >
-            {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : "Log in"}
+            {loading ? <Loader2 className="h-5 w-5 animate-spin" /> : "Log in"}
           </Button>
         </form>
 

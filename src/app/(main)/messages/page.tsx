@@ -176,7 +176,7 @@ export default function MessagesPage() {
                 <div className="relative">
                   {isPlace ? (
                     <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
-                      <MapPin className="text-primary" size={20} />
+                      <MapPin className="text-primary h-5 w-5" />
                     </div>
                   ) : (
                     <Avatar className="h-10 w-10">

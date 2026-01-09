@@ -7,6 +7,7 @@ export type AutocompletePrediction = {
     main_text: string;
     secondary_text: string;
   };
+  types?: string[];
 };
 
 export type PlaceDetailsResponse = {

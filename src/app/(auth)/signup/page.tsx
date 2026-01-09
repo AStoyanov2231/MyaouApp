@@ -1,9 +1,14 @@
 "use client";
+
 import { useState } from "react";
 import Link from "next/link";
-import { Mail, AtSign, Lock, Loader2 } from "lucide-react";
+
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { InputWithIcon } from "@/components/ui/input-with-icon";
+
+import { Mail, AtSign, Lock, Loader2, AlertCircle } from "lucide-react";
+
 import { signup } from "../actions";
 
 export default function SignupPage() {
@@ -22,7 +27,7 @@ export default function SignupPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#6867B0] flex items-center justify-center p-4">
+    <div className="min-h-screen bg-primary flex items-center justify-center p-4">
       <div className="w-full max-w-md">
         {/* Header */}
         <div className="text-center mb-8">
@@ -36,7 +41,7 @@ export default function SignupPage() {
             type="email"
             placeholder="Email"
             required
-            icon={<Mail className="w-5 h-5" />}
+            icon={<Mail className="h-5 w-5" />}
             className="border-none"
           />
           <InputWithIcon
@@ -44,7 +49,7 @@ export default function SignupPage() {
             placeholder="Username"
             required
             minLength={3}
-            icon={<AtSign className="w-5 h-5" />}
+            icon={<AtSign className="h-5 w-5" />}
             className="border-none"
           />
           <InputWithIcon
@@ -53,25 +58,28 @@ export default function SignupPage() {
             placeholder="Password"
             required
             minLength={6}
-            icon={<Lock className="w-5 h-5" />}
+            icon={<Lock className="h-5 w-5" />}
             className="border-none"
           />
           {error && (
-            <div className="text-red-500 text-sm bg-red-50 border border-red-200 rounded-lg p-3">
-              {error}
-              {error.includes("already registered") && (
-                <Link href="/login" className="block mt-2 text-indigo-600 font-semibold hover:underline">
-                  Go to login page →
-                </Link>
-              )}
-            </div>
+            <Alert variant="destructive">
+              <AlertCircle className="h-4 w-4" />
+              <AlertDescription>
+                {error}
+                {error.includes("already registered") && (
+                  <Link href="/login" className="block mt-2 text-primary font-semibold hover:underline">
+                    Go to login page →
+                  </Link>
+                )}
+              </AlertDescription>
+            </Alert>
           )}
           <Button
             type="submit"
-            className="w-full rounded-full bg-cyan-400 hover:bg-cyan-300 text-gray-900 font-semibold h-12 text-base"
+            className="w-full rounded-full bg-accent hover:bg-accent/90 text-foreground font-semibold h-12 text-base"
             disabled={loading}
           >
-            {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : "Create account"}
+            {loading ? <Loader2 className="h-5 w-5 animate-spin" /> : "Create account"}
           </Button>
         </form>
 
