@@ -16,16 +16,6 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: "Place ID required" }, { status: 400 });
   }
 
-  // Validate Google Place ID format (alphanumeric with some special chars)
-  if (!/^[a-zA-Z0-9_-]+$/.test(placeId)) {
-    return NextResponse.json({ error: "Invalid Place ID format" }, { status: 400 });
-  }
-
-  // Validate session token format if provided
-  if (sessionToken && !/^[a-zA-Z0-9_-]+$/.test(sessionToken)) {
-    return NextResponse.json({ error: "Invalid session token format" }, { status: 400 });
-  }
-
   // Check database cache first
   const { data: cachedPlace } = await supabase
     .from("places")
