@@ -14,6 +14,7 @@ export default function PlacesPage() {
   const [overlayMode, setOverlayMode] = useState<"search" | "loading" | "details">("search");
   const [mapCenter, setMapCenter] = useState<[number, number]>([37.7749, -122.4194]);
   const [userLocation, setUserLocation] = useState<[number, number] | null>(null);
+  const [locationPermission, setLocationPermission] = useState<boolean | null>(null);
   const [popularPlaces, setPopularPlaces] = useState<Place[]>([]);
   const [popularLoading, setPopularLoading] = useState(false);
   const [isDesktop, setIsDesktop] = useState(false);
@@ -64,10 +65,10 @@ export default function PlacesPage() {
           ];
           setUserLocation(coords);
           setMapCenter(coords);
+          setLocationPermission(true);
         },
         () => {
-          // Fallback to San Francisco if geolocation denied
-          setMapCenter([37.7749, -122.4194]);
+          setLocationPermission(false);
         }
       );
     }
@@ -112,13 +113,20 @@ export default function PlacesPage() {
       {/* Desktop View: Map + Overlay (conditionally rendered to prevent Leaflet errors) */}
       {isDesktop && (
         <div className="flex flex-1 relative h-screen">
-          <MapContainer
-            places={displayPlaces}
-            center={mapCenter}
-            zoom={13}
-            selectedPlace={selectedPlace}
-            onMarkerClick={handlePlaceSelect}
-          />
+          {locationPermission === false ? (
+            <div className="w-full h-full flex items-center justify-center bg-muted">
+              <p className="text-muted-foreground font-medium">Enable location</p>
+            </div>
+          ) : (
+            <MapContainer
+              places={displayPlaces}
+              center={mapCenter}
+              zoom={13}
+              selectedPlace={selectedPlace}
+              onMarkerClick={handlePlaceSelect}
+              userLocation={userLocation}
+            />
+          )}
           <FloatingOverlay
             mode={overlayMode}
             selectedPlace={selectedPlace}
@@ -146,6 +154,8 @@ export default function PlacesPage() {
           onPlaceSelect={handlePlaceSelect}
           onBack={handleBack}
           overlayMode={overlayMode}
+          userLocation={userLocation}
+          locationPermission={locationPermission}
         />
       )}
     </>

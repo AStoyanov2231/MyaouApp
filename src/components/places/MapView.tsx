@@ -12,6 +12,14 @@ L.Icon.Default.mergeOptions({
   shadowUrl: "/leaflet/marker-shadow.png",
 });
 
+// User location marker with "You" text
+const userMarkerIcon = new L.DivIcon({
+  className: "user-marker",
+  html: `<div style="display:flex;flex-direction:column;align-items:center"><span style="font-size:12px;font-weight:600;color:#6867B0">You</span><div style="width:12px;height:12px;background:#6867B0;border:2px solid white;border-radius:50%;box-shadow:0 2px 4px rgba(0,0,0,0.3)"></div></div>`,
+  iconSize: [40, 30],
+  iconAnchor: [20, 30],
+});
+
 // Brand-colored marker icon for selected place
 const brandMarkerIcon = new L.DivIcon({
   className: "brand-marker",
@@ -52,6 +60,7 @@ type MapViewProps = {
   zoom: number;
   selectedPlace: Place | null;
   onMarkerClick: (place: Place) => void;
+  userLocation: [number, number] | null;
 };
 
 export default function MapView({
@@ -60,6 +69,7 @@ export default function MapView({
   zoom,
   selectedPlace,
   onMarkerClick,
+  userLocation,
 }: MapViewProps) {
   // Filter out places without coordinates
   const validPlaces = places.filter(
@@ -88,6 +98,11 @@ export default function MapView({
         url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
       />
       <RecenterMap center={center} />
+
+      {/* User location marker */}
+      {userLocation && (
+        <Marker position={userLocation} icon={userMarkerIcon} />
+      )}
 
       {/* Render markers for places in the list */}
       {validPlaces.map((place) => {

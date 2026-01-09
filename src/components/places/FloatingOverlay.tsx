@@ -30,16 +30,14 @@ export function FloatingOverlay({
   // Search mode - minimal floating search bar
   if (mode === "search") {
     return (
-      <div className="absolute top-6 left-6 z-50 w-[380px] max-w-[calc(100%-3rem)]">
-        <div className="bg-card/95 backdrop-blur-xl rounded-2xl shadow-xl shadow-black/10 border border-border/50 animate-[fadeIn_0.3s_ease-out]">
-          <SearchView
-            query={query}
-            onQueryChange={onQueryChange}
-            suggestions={suggestions}
-            loading={loading}
-            onSuggestionClick={onSuggestionClick}
-          />
-        </div>
+      <div className="absolute top-6 left-6 z-50 w-[380px] max-w-[calc(100%-3rem)] animate-[fadeIn_0.3s_ease-out]">
+        <SearchView
+          query={query}
+          onQueryChange={onQueryChange}
+          suggestions={suggestions}
+          loading={loading}
+          onSuggestionClick={onSuggestionClick}
+        />
       </div>
     );
   }

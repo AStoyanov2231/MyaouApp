@@ -60,7 +60,7 @@ export function SearchView({
   const hasResults = query.length >= 2 && (loading || displaySuggestions.length > 0);
 
   return (
-    <div className="p-4">
+    <div>
       {/* Search Input */}
       <div className="relative">
         <div className="absolute left-4 top-1/2 -translate-y-1/2 z-10">
@@ -71,13 +71,13 @@ export function SearchView({
           value={query}
           onChange={(e) => onQueryChange(e.target.value)}
           placeholder="Search places..."
-          className="w-full pl-12 pr-4 h-12 border-0 rounded-xl bg-muted/50 transition-all duration-300 placeholder:text-muted-foreground font-medium focus-visible:ring-1 focus-visible:ring-primary"
+          className="w-full pl-12 pr-4 h-12 border border-border/50 rounded-xl bg-card/95 backdrop-blur-xl shadow-xl shadow-black/10 transition-all duration-300 placeholder:text-muted-foreground font-medium focus-visible:ring-1 focus-visible:ring-primary"
         />
       </div>
 
       {/* Results - only show when there's content */}
       {hasResults && (
-        <div className="mt-3 space-y-1 animate-[fadeIn_0.2s_ease-out]">
+        <div className="mt-2 p-2 space-y-1 animate-[fadeIn_0.2s_ease-out] bg-card/95 backdrop-blur-xl rounded-xl shadow-xl shadow-black/10 border border-border/50">
           {/* Loading State */}
           {loading && (
             <div className="flex items-center justify-center py-6">

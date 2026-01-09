@@ -21,6 +21,7 @@ type MapContainerProps = {
   zoom: number;
   selectedPlace: Place | null;
   onMarkerClick: (place: Place) => void;
+  userLocation: [number, number] | null;
 };
 
 export function MapContainer({
@@ -29,6 +30,7 @@ export function MapContainer({
   zoom,
   selectedPlace,
   onMarkerClick,
+  userLocation,
 }: MapContainerProps) {
   return (
     <div className="w-full h-full relative z-0">
@@ -38,6 +40,7 @@ export function MapContainer({
         zoom={zoom}
         selectedPlace={selectedPlace}
         onMarkerClick={onMarkerClick}
+        userLocation={userLocation}
       />
     </div>
   );

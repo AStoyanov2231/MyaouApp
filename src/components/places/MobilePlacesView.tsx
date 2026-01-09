@@ -25,6 +25,8 @@ type MobilePlacesViewProps = {
   onPlaceSelect: (place: Place) => void;
   onBack: () => void;
   overlayMode: "search" | "loading" | "details";
+  userLocation: [number, number] | null;
+  locationPermission: boolean | null;
 };
 
 export function MobilePlacesView({
@@ -39,6 +41,8 @@ export function MobilePlacesView({
   onPlaceSelect,
   onBack,
   overlayMode,
+  userLocation,
+  locationPermission,
 }: MobilePlacesViewProps) {
   const [viewState, setViewState] = useState<MobileViewState>("idle");
 
@@ -62,13 +66,20 @@ export function MobilePlacesView({
     <div className="relative h-[calc(100vh-4rem)] w-full overflow-hidden">
       {/* Full-screen map as base layer */}
       <div className="absolute inset-0 z-0">
-        <MapContainer
-          places={displayPlaces}
-          center={mapCenter}
-          zoom={13}
-          selectedPlace={selectedPlace}
-          onMarkerClick={onPlaceSelect}
-        />
+        {locationPermission === false ? (
+          <div className="w-full h-full flex items-center justify-center bg-muted">
+            <p className="text-muted-foreground font-medium">Enable location</p>
+          </div>
+        ) : (
+          <MapContainer
+            places={displayPlaces}
+            center={mapCenter}
+            zoom={13}
+            selectedPlace={selectedPlace}
+            onMarkerClick={onPlaceSelect}
+            userLocation={userLocation}
+          />
+        )}
       </div>
 
       {/* Top search bar - always visible except during loading */}
