@@ -65,7 +65,7 @@ export default function MessagesPage() {
 
     // Subscribe to dm_threads changes for this user
     const channel = supabase
-      .channel(`dm-threads:${Date.now()}`)
+      .channel("dm-threads")
       .on(
         "postgres_changes",
         {

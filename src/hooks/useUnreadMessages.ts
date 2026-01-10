@@ -12,6 +12,8 @@ export function useUnreadMessages() {
   const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
   const debounceRef = useRef<NodeJS.Timeout | null>(null);
   const lastVisibilityFetchRef = useRef<number>(0);
+  const isReconnectingRef = useRef<boolean>(false);
+  const isSubscribedRef = useRef<boolean>(false);
 
   const fetchUnreadCount = useCallback(async () => {
     try {
@@ -38,14 +40,21 @@ export function useUnreadMessages() {
     let reconnectTimeout: NodeJS.Timeout | null = null;
 
     const setupChannel = () => {
+      // Prevent duplicate setup if already reconnecting or subscribed
+      if (isReconnectingRef.current || isSubscribedRef.current) {
+        return;
+      }
+
       // Clean up existing channel
       if (channelRef.current) {
         supabase.removeChannel(channelRef.current);
+        channelRef.current = null;
       }
+
+      isReconnectingRef.current = true;
 
       // Subscribe to dm_messages, messages, and place_members changes
       // Use debounced fetch to allow mark-as-read operations to complete first
-      // Removed Date.now() from channel name to prevent orphaned channels
       const channel = supabase
         .channel("unread-count")
         .on("postgres_changes", { event: "*", schema: "public", table: "dm_messages" }, () => {
@@ -60,12 +69,16 @@ export function useUnreadMessages() {
         .subscribe((status) => {
           if (status === "SUBSCRIBED") {
             console.log("Subscribed to unread-count realtime");
+            isReconnectingRef.current = false;
+            isSubscribedRef.current = true;
           } else if (
             status === "CHANNEL_ERROR" ||
             status === "TIMED_OUT" ||
             status === "CLOSED"
           ) {
             console.warn(`Unread channel ${status}, attempting reconnect in 3s...`);
+            isReconnectingRef.current = false;
+            isSubscribedRef.current = false;
             if (isMounted) {
               reconnectTimeout = setTimeout(setupChannel, 3000);
             }
@@ -84,7 +97,10 @@ export function useUnreadMessages() {
           lastVisibilityFetchRef.current = now;
           fetchUnreadCount(); // Refresh count on return
         }
-        setupChannel(); // Reconnect realtime (always reconnect)
+        // Only reconnect if not already subscribed or reconnecting
+        if (!isSubscribedRef.current && !isReconnectingRef.current) {
+          setupChannel();
+        }
       }
     };
 
@@ -103,6 +119,8 @@ export function useUnreadMessages() {
         supabase.removeChannel(channelRef.current);
         channelRef.current = null;
       }
+      isReconnectingRef.current = false;
+      isSubscribedRef.current = false;
     };
   }, [fetchUnreadCount, debouncedFetch]);
 

@@ -32,7 +32,8 @@
       "Bash(git push:*)",
       "Bash(git log:*)",
       "Bash(git commit:*)",
-      "Skill(skill-creator)"
+      "Skill(skill-creator)",
+      "Skill(code-review-skill)"
     ]
   }
 }

@@ -2,6 +2,7 @@ import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import { Sidebar } from "@/components/layout/Sidebar";
 import { MobileNav } from "@/components/layout/MobileNav";
+import { UnreadMessagesProvider } from "@/contexts/UnreadMessagesContext";
 
 export default async function MainLayout({ children }: { children: React.ReactNode }) {
   const supabase = await createClient();
@@ -19,10 +20,12 @@ export default async function MainLayout({ children }: { children: React.ReactNo
     .single();
 
   return (
-    <div className="min-h-screen bg-muted flex">
-      <Sidebar profile={profile} />
-      <main className="flex-1 pb-16 md:pb-0">{children}</main>
-      <MobileNav />
-    </div>
+    <UnreadMessagesProvider>
+      <div className="min-h-screen bg-muted flex">
+        <Sidebar profile={profile} />
+        <main className="flex-1 pb-16 md:pb-0">{children}</main>
+        <MobileNav />
+      </div>
+    </UnreadMessagesProvider>
   );
 }

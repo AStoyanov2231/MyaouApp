@@ -4,7 +4,7 @@ import { usePathname } from "next/navigation";
 import { MapPin, MessageCircle, Users, User } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
-import { useUnreadMessages } from "@/hooks/useUnreadMessages";
+import { useUnreadMessagesContext } from "@/contexts/UnreadMessagesContext";
 
 const navItems = [
   { href: "/places", icon: MapPin, label: "Places" },
@@ -15,7 +15,7 @@ const navItems = [
 
 export function MobileNav() {
   const pathname = usePathname();
-  const { unreadCount } = useUnreadMessages();
+  const { unreadCount } = useUnreadMessagesContext();
 
   return (
     <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-card border-t flex">

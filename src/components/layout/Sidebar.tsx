@@ -8,7 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import type { Profile } from "@/types/database";
 import { signOut } from "@/app/(auth)/actions";
-import { useUnreadMessages } from "@/hooks/useUnreadMessages";
+import { useUnreadMessagesContext } from "@/contexts/UnreadMessagesContext";
 
 function getInitials(name: string) {
   return name.slice(0, 2).toUpperCase();
@@ -23,7 +23,7 @@ const navItems = [
 
 export function Sidebar({ profile }: { profile: Profile | null }) {
   const pathname = usePathname();
-  const { unreadCount } = useUnreadMessages();
+  const { unreadCount } = useUnreadMessagesContext();
 
   return (
     <aside className="hidden md:flex flex-col w-64 bg-card border-r h-screen sticky top-0">

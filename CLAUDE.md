@@ -68,7 +68,8 @@ src/
 ├── components/
 │   ├── ui/                  # shadcn/ui components
 │   ├── layout/              # Sidebar, MobileNav
-│   └── places/              # Map and overlay components
+│   ├── places/              # Map and overlay components
+│   └── friends/             # Friend list client components (RSC pattern)
 ├── hooks/                   # Custom React hooks
 ├── lib/                     # Utilities and configurations
 │   └── supabase/            # Supabase client configurations
@@ -209,6 +210,53 @@ Custom keyframes in `globals.css`: fadeIn, slideDown, slideUp, slideRight, scale
 `cn()` in `src/lib/utils.ts` - Combines clsx and tailwind-merge for safe class merging.
 
 ## Key Patterns
+
+### RSC with Client Islands (Performance Pattern)
+
+This app follows the **Server Components by default** pattern from React 19 / Next.js 16+. Pages should be Server Components that fetch data server-side, with minimal client components ("islands") only for interactivity.
+
+**Pattern:**
+```
+┌─────────────────────────────────────────┐
+│ page.tsx (Server Component)             │
+│   - Fetches data directly from Supabase │
+│   - No "use client" directive           │
+│   - Passes data as props to children    │
+└─────────────────────────────────────────┘
+                    │
+    ┌───────────────▼───────────────┐
+    │ ComponentClient.tsx           │
+    │   - "use client" directive    │
+    │   - Receives pre-fetched data │
+    │   - Handles interactivity     │
+    │   - useOptimistic for actions │
+    └───────────────────────────────┘
+```
+
+**When to use `"use client"`:**
+- Event handlers (onClick, onSubmit)
+- React hooks (useState, useEffect, useOptimistic)
+- Realtime subscriptions (Supabase Realtime)
+- Browser APIs (localStorage, geolocation)
+- Third-party client libraries (Leaflet)
+
+**Do NOT use `"use client"` for:**
+- Data fetching (fetch in Server Component instead)
+- Static content
+- Layout shells
+
+**Example - Friends Page:**
+- `src/app/(main)/friends/page.tsx` - Server Component, fetches friends/requests
+- `src/components/friends/FriendsTabsClient.tsx` - Client island for tabs + optimistic updates
+
+**Optimistic Updates:**
+Use `useOptimistic` from React 19 for instant UI feedback on user actions:
+```tsx
+const [optimisticItems, updateOptimistic] = useOptimistic(items, reducerFn);
+// Update UI instantly, then sync with server
+```
+
+See `performance.md` for complete performance rules and patterns.
 
 ### Authentication Flow
 
