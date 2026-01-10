@@ -2,6 +2,10 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## Workflow Rules
+
+- **Always run the `code-reviewer` agent after writing or modifying code** to check for bugs, security issues, and logic flaws before presenting to the user.
+
 ## Project Overview
 
 PlaceChat is a location-based chat application where users discover real-world places (via Google Places API) and join place-specific chat rooms. Features include real-time messaging, friend system with mutual opt-in DMs, and media sharing.
@@ -30,10 +34,20 @@ npm run lint     # Run ESLint
 ### Directory Structure
 
 ```
+.claude/
+├── agents/                  # Custom Claude Code agents
+│   ├── code-reviewer.md     # Code review agent (uses code-review-skill)
+│   └── supabase-optimizer.md # Supabase query optimization agent
+└── skills/                  # Custom Claude Code skills
+    └── code-review-skill/   # PR review simulation skill
+        ├── SKILL.md
+        └── references/
+            └── checklist.md
+
 src/
 ├── app/
 │   ├── (auth)/              # Unauthenticated routes (welcome, login, signup)
-│   │   └── actions.ts       # Server actions: login, signup, signOut
+│   │   └── actions.ts       # Server actions: login, signup, signOut, signInWithGoogle
 │   ├── (main)/              # Protected routes with shared layout
 │   │   ├── friends/         # Friend requests and list
 │   │   ├── messages/        # Unified inbox (DMs + place chats)
@@ -42,6 +56,8 @@ src/
 │   │   ├── places/          # Place discovery (map + grid)
 │   │   └── profile/         # User profiles
 │   │       └── [userId]/    # Other user's profile
+│   ├── auth/
+│   │   └── callback/        # OAuth callback handler (creates profiles for OAuth users)
 │   └── api/                 # Backend API routes
 ├── components/
 │   ├── ui/                  # shadcn/ui components
@@ -57,8 +73,14 @@ src/
 ### Route Structure
 
 **Auth Routes** (`/welcome`, `/login`, `/signup`):
-- OAuth buttons (Apple, Google) show "Coming soon" - only email/password implemented
-- Server actions in `actions.ts` handle all auth operations
+- Email/password authentication fully implemented with server-side validation
+- Google OAuth backend implemented (`signInWithGoogle`), UI buttons show "Coming soon"
+- Apple OAuth not yet implemented
+- Server actions in `actions.ts` handle all auth operations with:
+  - Input validation (null checks, type guards)
+  - Server-side length validation (username min 3, password min 6)
+  - TOCTOU-safe username uniqueness (handles DB constraint violation)
+  - Auto profile creation for all auth methods
 
 **Protected Routes**:
 - `/places` - Place discovery (desktop: Leaflet map + overlay, mobile: grid view only - map not rendered)
@@ -186,8 +208,15 @@ Custom keyframes in `globals.css`: fadeIn, slideDown, slideUp, slideRight, scale
 
 1. Middleware handles session refresh and redirects
 2. Unauthenticated users → `/welcome`
-3. Server actions handle login/signup with profile auto-creation
-4. `useAuth` hook manages client-side state
+3. Server actions handle login/signup with:
+   - Input validation (type checks, required fields)
+   - Server-side length validation (username ≥3, password ≥6 chars)
+   - Profile auto-creation using service client (bypasses RLS)
+   - Username uniqueness via DB constraint (not pre-check, avoids race conditions)
+4. OAuth callback (`/auth/callback`) handles:
+   - Code exchange for session
+   - Profile creation for OAuth users (with metadata from provider)
+5. `useAuth` hook manages client-side state
 
 ### Place Discovery Flow
 
@@ -233,9 +262,23 @@ NEXT_PUBLIC_APP_URL
 
 ## Not Yet Implemented
 
-- OAuth (Apple/Google) - buttons show "Coming soon"
+- OAuth UI buttons - backend ready for Google, buttons show "Coming soon"
+- Apple OAuth - not implemented
 - Media sharing in messages - API exists but no UI
 - User search for adding friends
 - Typing indicators
 - Push notifications
 - Message editing/reactions
+
+## Claude Code Configuration
+
+### Agents (`.claude/agents/`)
+
+- **code-reviewer** - Reviews code for bugs, security vulnerabilities, and mistakes using the code-review-skill. Runs automatically after code changes.
+- **supabase-optimizer** - Analyzes Supabase queries and APIs for performance optimization.
+
+### Skills (`.claude/skills/`)
+
+- **code-review-skill** - Senior developer PR review simulation. Checks for logic flaws, pattern violations, dumb logic, and breaking changes. Outputs structured review with severity ratings.
+
+Invoke skills manually with `/code-review-skill` or let agents use them automatically.
