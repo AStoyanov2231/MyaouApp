@@ -17,7 +17,11 @@ export async function createClient() {
             cookiesToSet.forEach(({ name, value, options }) =>
               cookieStore.set(name, value, options)
             );
-          } catch {}
+          } catch (error) {
+            // Cookie setting can fail in certain contexts (e.g., after response sent)
+            // This is expected behavior in some cases, but log for debugging
+            console.debug("Cookie set warning:", error);
+          }
         },
       },
     }

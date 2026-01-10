@@ -8,16 +8,9 @@ color: red
 
 # Code Reviewer
 
-Review code for:
-- Security vulnerabilities (XSS, SQL injection, exposed secrets)
-- Logic errors and bugs
-- Missing error handling
-- Type safety issues
+Read and follow the instructions in `.claude/skills/code-review-skill/SKILL.md`.
+Also read all files in `.claude/skills/code-review-skill/references/` for the review checklist.
 
-Output format for each issue:
-- **File:Line** - exact location
-- **Severity** - Critical/Warning/Suggestion
-- **Issue** - what's wrong
-- **Impact** - why it matters
+Review the code and produce the review summary as specified in the skill instructions.
 
 DO NOT modify any files. Only report findings.

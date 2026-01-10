@@ -1,5 +1,7 @@
-import { createClient } from "@/lib/supabase/server";
+import { createClient, createServiceClient } from "@/lib/supabase/server";
 import { NextResponse } from "next/server";
+
+const USERNAME_ID_LENGTH = 8;
 
 export async function GET(request: Request) {
   const { searchParams, origin } = new URL(request.url);
@@ -25,6 +27,36 @@ export async function GET(request: Request) {
       const redirectUrl = new URL("/login", origin);
       redirectUrl.searchParams.set("error", "Failed to authenticate. Please try again.");
       return NextResponse.redirect(redirectUrl);
+    }
+
+    // Create profile for OAuth users if it doesn't exist
+    const { data: { user } } = await supabase.auth.getUser();
+
+    if (user) {
+      const { data: existingProfile } = await supabase
+        .from("profiles")
+        .select("id")
+        .eq("id", user.id)
+        .single();
+
+      if (!existingProfile) {
+        const serviceClient = createServiceClient();
+        const username = user.user_metadata?.preferred_username ||
+                         user.user_metadata?.user_name ||
+                         `user_${user.id.slice(0, USERNAME_ID_LENGTH)}`;
+
+        const { error: profileError } = await serviceClient.from("profiles").insert({
+          id: user.id,
+          username,
+          display_name: user.user_metadata?.full_name || user.user_metadata?.name || null,
+          avatar_url: user.user_metadata?.avatar_url || null,
+        });
+
+        if (profileError) {
+          console.error("Failed to create profile for OAuth user:", profileError);
+          // Continue anyway - profile creation will be retried on next login
+        }
+      }
     }
   }
 

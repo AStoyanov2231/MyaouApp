@@ -2,11 +2,24 @@
 import { createClient, createServiceClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 
+// Constants
+const USERNAME_ID_LENGTH = 8;
+const MIN_USERNAME_LENGTH = 3;
+const MIN_PASSWORD_LENGTH = 6;
+
 export async function login(formData: FormData) {
+  // Input validation
+  const email = formData.get("email");
+  const password = formData.get("password");
+
+  if (!email || !password || typeof email !== "string" || typeof password !== "string") {
+    return { error: "Email and password are required." };
+  }
+
   const supabase = await createClient();
   const { data, error } = await supabase.auth.signInWithPassword({
-    email: formData.get("email") as string,
-    password: formData.get("password") as string,
+    email,
+    password,
   });
   if (error) return { error: error.message };
 
@@ -20,13 +33,18 @@ export async function login(formData: FormData) {
 
     if (!existingProfile) {
       const serviceClient = createServiceClient();
-      const username = data.user.user_metadata?.username || `user_${data.user.id.slice(0, 8)}`;
-      await serviceClient.from("profiles").insert({
+      const username = data.user.user_metadata?.username || `user_${data.user.id.slice(0, USERNAME_ID_LENGTH)}`;
+      const { error: profileError } = await serviceClient.from("profiles").insert({
         id: data.user.id,
         username,
         display_name: data.user.user_metadata?.full_name || data.user.user_metadata?.name || null,
         avatar_url: data.user.user_metadata?.avatar_url || null,
       });
+
+      if (profileError) {
+        console.error("Failed to create profile during login:", profileError);
+        // Continue anyway - profile creation will be retried on next login
+      }
     }
   }
 
@@ -34,21 +52,33 @@ export async function login(formData: FormData) {
 }
 
 export async function signup(formData: FormData) {
-  const supabase = await createClient();
-  const email = formData.get("email") as string;
-  const password = formData.get("password") as string;
-  const username = formData.get("username") as string;
+  // Input validation
+  const email = formData.get("email");
+  const password = formData.get("password");
+  const username = formData.get("username");
 
-  // Check if username is already taken
-  const { data: existingUsername } = await supabase
-    .from("profiles")
-    .select("id")
-    .eq("username", username)
-    .single();
-
-  if (existingUsername) {
-    return { error: "Username is already taken. Please choose another one." };
+  if (!email || typeof email !== "string") {
+    return { error: "Email is required." };
   }
+
+  if (!password || typeof password !== "string") {
+    return { error: "Password is required." };
+  }
+
+  if (!username || typeof username !== "string") {
+    return { error: "Username is required." };
+  }
+
+  // Server-side length validation
+  if (username.length < MIN_USERNAME_LENGTH) {
+    return { error: `Username must be at least ${MIN_USERNAME_LENGTH} characters.` };
+  }
+
+  if (password.length < MIN_PASSWORD_LENGTH) {
+    return { error: `Password must be at least ${MIN_PASSWORD_LENGTH} characters.` };
+  }
+
+  const supabase = await createClient();
 
   // Use the correct app URL for email confirmation redirect
   const appUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
@@ -76,6 +106,7 @@ export async function signup(formData: FormData) {
   }
 
   // Explicitly create profile using service client (bypasses RLS)
+  // Handle unique constraint violation instead of pre-checking (fixes TOCTOU race condition)
   const serviceClient = createServiceClient();
   const { error: profileError } = await serviceClient.from("profiles").insert({
     id: data.user.id,
@@ -86,7 +117,13 @@ export async function signup(formData: FormData) {
 
   if (profileError) {
     console.error("Failed to create profile:", profileError);
-    // If profile creation fails, we should handle it but still proceed
+
+    // Check if it's a unique constraint violation on username
+    if (profileError.code === "23505" && profileError.message?.includes("username")) {
+      return { error: "Username is already taken. Please choose another one." };
+    }
+
+    // If profile creation fails for other reasons, still proceed
     // The user is created in auth, profile will be created on login if missing
     return { error: "Account created but profile setup failed. Please try logging in." };
   }
@@ -108,4 +145,5 @@ export async function signInWithGoogle() {
   });
   if (error) return { error: error.message };
   if (data.url) redirect(data.url);
+  return { error: "Failed to initiate Google sign-in. Please try again." };
 }
