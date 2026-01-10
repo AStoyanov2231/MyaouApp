@@ -64,6 +64,17 @@ CREATE TABLE place_members (
 CREATE INDEX idx_place_members_place ON place_members(place_id);
 CREATE INDEX idx_place_members_user ON place_members(user_id);
 
+-- Place history table (tracks user visits for history panel)
+CREATE TABLE place_history (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    user_id UUID NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
+    place_id UUID NOT NULL REFERENCES places(id) ON DELETE CASCADE,
+    visited_at TIMESTAMPTZ DEFAULT NOW(),
+    UNIQUE(user_id, place_id)
+);
+
+CREATE INDEX idx_place_history_user_visited ON place_history(user_id, visited_at DESC);
+
 -- Messages table
 CREATE TABLE messages (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
@@ -171,6 +182,20 @@ END;
 $$ LANGUAGE plpgsql;
 
 CREATE TRIGGER place_members_count AFTER INSERT OR DELETE ON place_members FOR EACH ROW EXECUTE FUNCTION update_place_member_count();
+
+-- Auto-record place visit when joining a place
+CREATE OR REPLACE FUNCTION record_place_visit()
+RETURNS TRIGGER AS $$
+BEGIN
+    INSERT INTO place_history (user_id, place_id, visited_at)
+    VALUES (NEW.user_id, NEW.place_id, NOW())
+    ON CONFLICT (user_id, place_id)
+    DO UPDATE SET visited_at = NOW();
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER record_visit_on_join AFTER INSERT ON place_members FOR EACH ROW EXECUTE FUNCTION record_place_visit();
 
 -- Update place message count
 CREATE OR REPLACE FUNCTION update_place_message_count()
@@ -282,6 +307,7 @@ ALTER TABLE friendships ENABLE ROW LEVEL SECURITY;
 ALTER TABLE dm_threads ENABLE ROW LEVEL SECURITY;
 ALTER TABLE dm_messages ENABLE ROW LEVEL SECURITY;
 ALTER TABLE media_uploads ENABLE ROW LEVEL SECURITY;
+ALTER TABLE place_history ENABLE ROW LEVEL SECURITY;
 
 -- Profiles: public read, self update
 CREATE POLICY "Profiles are publicly viewable" ON profiles FOR SELECT USING (true);
@@ -332,3 +358,6 @@ CREATE POLICY "Users can delete own DMs" ON dm_messages FOR DELETE TO authentica
 -- Media uploads
 CREATE POLICY "Users can view own uploads" ON media_uploads FOR SELECT TO authenticated USING (user_id = auth.uid());
 CREATE POLICY "Users can create uploads" ON media_uploads FOR INSERT TO authenticated WITH CHECK (user_id = auth.uid());
+
+-- Place history
+CREATE POLICY "Users can view own place history" ON place_history FOR SELECT TO authenticated USING (user_id = auth.uid());

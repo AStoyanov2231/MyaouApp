@@ -6,6 +6,7 @@ import { AutocompletePrediction } from "@/types/google-places";
 import { MapContainer } from "@/components/places/MapContainer";
 import { FloatingOverlay } from "@/components/places/FloatingOverlay";
 import { MobilePlacesView } from "@/components/places/MobilePlacesView";
+import { PlacesPanel } from "@/components/places/PlacesPanel";
 
 export default function PlacesPage() {
   const { suggestions, loading, fetchSuggestions, fetchPlaceDetails, resetSession } = usePlacesAutocomplete();
@@ -15,8 +16,6 @@ export default function PlacesPage() {
   const [mapCenter, setMapCenter] = useState<[number, number]>([37.7749, -122.4194]);
   const [userLocation, setUserLocation] = useState<[number, number] | null>(null);
   const [locationPermission, setLocationPermission] = useState<boolean | null>(null);
-  const [popularPlaces, setPopularPlaces] = useState<Place[]>([]);
-  const [popularLoading, setPopularLoading] = useState(false);
   const [isDesktop, setIsDesktop] = useState(false);
 
   // Detect desktop to conditionally render map (prevents Leaflet errors on mobile)
@@ -25,23 +24,6 @@ export default function PlacesPage() {
     checkDesktop();
     window.addEventListener("resize", checkDesktop);
     return () => window.removeEventListener("resize", checkDesktop);
-  }, []);
-
-  // Fetch popular places on mount
-  useEffect(() => {
-    const fetchPopular = async () => {
-      setPopularLoading(true);
-      try {
-        const response = await fetch("/api/places/popular");
-        const data = await response.json();
-        setPopularPlaces(data.places || []);
-      } catch (error) {
-        console.error("Failed to fetch popular places:", error);
-      } finally {
-        setPopularLoading(false);
-      }
-    };
-    fetchPopular();
   }, []);
 
   // Debounced autocomplete
@@ -138,6 +120,7 @@ export default function PlacesPage() {
             onSuggestionClick={handleSuggestionClick}
             onBack={handleBack}
           />
+          <PlacesPanel />
         </div>
       )}
 

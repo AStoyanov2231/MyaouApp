@@ -38,6 +38,14 @@ export type PlaceMember = {
   joined_at: string;
 };
 
+export type PlaceHistory = {
+  id: string;
+  user_id: string;
+  place_id: string;
+  visited_at: string;
+  place?: Place;
+};
+
 export type Message = {
   id: string;
   place_id: string;
