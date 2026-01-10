@@ -11,18 +11,11 @@ export default async function MainLayout({ children }: { children: React.ReactNo
   const { data: { session } } = await supabase.auth.getSession();
 
   if (!session?.user) redirect("/login");
-  const user = session.user;
-
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("*")
-    .eq("id", user.id)
-    .single();
 
   return (
     <UnreadMessagesProvider>
       <div className="min-h-screen bg-muted flex">
-        <Sidebar profile={profile} />
+        <Sidebar />
         <main className="flex-1 pb-16 md:pb-0">{children}</main>
         <MobileNav />
       </div>

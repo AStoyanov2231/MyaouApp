@@ -8,6 +8,8 @@ export type Profile = {
   is_online: boolean;
   last_seen_at: string;
   created_at: string;
+  deleted_at: string | null;
+  scheduled_deletion_at: string | null;
 };
 
 export type Place = {
@@ -97,4 +99,37 @@ export type DMMessage = {
   is_deleted: boolean;
   created_at: string;
   sender?: Profile;
+};
+
+export type ProfilePhoto = {
+  id: string;
+  user_id: string;
+  storage_path: string;
+  url: string;
+  thumbnail_url: string | null;
+  is_avatar: boolean;
+  display_order: number;
+  created_at: string;
+};
+
+export type InterestTag = {
+  id: string;
+  name: string;
+  category: string;
+  icon: string | null;
+  display_order: number;
+};
+
+export type ProfileInterest = {
+  id: string;
+  user_id: string;
+  tag_id: string;
+  created_at: string;
+  tag?: InterestTag;
+};
+
+export type ProfileStats = {
+  places_count: number;
+  photos_count: number;
+  friends_count: number;
 };

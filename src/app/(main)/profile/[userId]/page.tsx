@@ -1,104 +1,121 @@
-"use client";
-import { useState, useEffect, use } from "react";
-import { MapPin, UserPlus, Check, Clock, Loader2 } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
+import { redirect } from "next/navigation";
+import { createClient } from "@/lib/supabase/server";
+import { OtherProfileClient } from "@/components/profile/OtherProfileClient";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Card } from "@/components/ui/card";
-import { useAuth } from "@/hooks/useAuth";
-import type { Profile, Friendship } from "@/types/database";
+import type {
+  Profile,
+  ProfilePhoto,
+  ProfileInterest,
+  ProfileStats,
+  Friendship,
+} from "@/types/database";
 
-function getInitials(name: string) {
-  return name.slice(0, 2).toUpperCase();
-}
+async function getOtherProfileData(userId: string, currentUserId: string) {
+  const supabase = await createClient();
 
-export default function UserProfilePage({ params }: { params: Promise<{ userId: string }> }) {
-  const { userId } = use(params);
-  const { user } = useAuth();
-  const [profile, setProfile] = useState<Profile | null>(null);
-  const [friendship, setFriendship] = useState<Friendship | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [profileResult, photosResult, interestsResult, statsResult, friendshipResult] =
+    await Promise.all([
+      // Profile
+      supabase.from("profiles").select("*").eq("id", userId).single(),
 
-  useEffect(() => {
-    fetch(`/api/profile/${userId}`)
-      .then((r) => r.json())
-      .then((d) => {
-        setProfile(d.profile);
-        setFriendship(d.friendship);
-        setLoading(false);
-      });
-  }, [userId]);
+      // Photos
+      supabase
+        .from("profile_photos")
+        .select("*")
+        .eq("user_id", userId)
+        .order("display_order", { ascending: true }),
 
-  const handleFriendRequest = async () => {
-    const res = await fetch("/api/friends", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ addressee_id: userId }),
-    });
-    const data = await res.json();
-    setFriendship(data.friendship);
+      // User's interests with tags
+      supabase
+        .from("profile_interests")
+        .select("*, tag:interest_tags(*)")
+        .eq("user_id", userId)
+        .order("created_at", { ascending: true }),
+
+      // Stats
+      Promise.all([
+        supabase
+          .from("place_history")
+          .select("*", { count: "exact", head: true })
+          .eq("user_id", userId),
+        supabase
+          .from("profile_photos")
+          .select("*", { count: "exact", head: true })
+          .eq("user_id", userId),
+        supabase
+          .from("friendships")
+          .select("*", { count: "exact", head: true })
+          .eq("status", "accepted")
+          .or(`requester_id.eq.${userId},addressee_id.eq.${userId}`),
+      ]),
+
+      // Friendship between current user and profile user
+      supabase
+        .from("friendships")
+        .select("*")
+        .or(
+          `and(requester_id.eq.${currentUserId},addressee_id.eq.${userId}),and(requester_id.eq.${userId},addressee_id.eq.${currentUserId})`
+        )
+        .maybeSingle(),
+    ]);
+
+  const profile = profileResult.data as Profile | null;
+  const photos = (photosResult.data as ProfilePhoto[]) || [];
+  const interests = (interestsResult.data as ProfileInterest[]) || [];
+  const friendship = friendshipResult.data as Friendship | null;
+
+  const [placesCount, photosCount, friendsCount] = statsResult;
+  const stats: ProfileStats = {
+    places_count: placesCount.count ?? 0,
+    photos_count: photosCount.count ?? 0,
+    friends_count: friendsCount.count ?? 0,
   };
 
-  if (loading || !profile) {
+  return { profile, photos, interests, stats, friendship };
+}
+
+export default async function UserProfilePage({
+  params,
+}: {
+  params: Promise<{ userId: string }>;
+}) {
+  const { userId } = await params;
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    redirect("/login");
+  }
+
+  // If viewing own profile, redirect to /profile
+  if (user.id === userId) {
+    redirect("/profile");
+  }
+
+  const { profile, photos, interests, stats, friendship } =
+    await getOtherProfileData(userId, user.id);
+
+  if (!profile) {
     return (
       <div className="max-w-2xl mx-auto p-4">
-        <Card className="p-6">
-          <div className="flex items-start gap-4 mb-6">
-            <Skeleton className="h-16 w-16 rounded-full" />
-            <div className="flex-1 space-y-2">
-              <Skeleton className="h-6 w-32" />
-              <Skeleton className="h-4 w-24" />
-            </div>
-          </div>
-          <Skeleton className="h-16 w-full" />
+        <Card className="p-6 text-center">
+          <p className="text-muted-foreground">User not found</p>
         </Card>
       </div>
     );
   }
 
-  const isOwnProfile = user?.id === userId;
-  const isFriend = friendship?.status === "accepted";
-  const isPending = friendship?.status === "pending";
-
   return (
-    <div className="max-w-2xl mx-auto p-4">
-      <Card className="p-6">
-        <div className="flex items-start gap-4 mb-6">
-          <Avatar className="h-16 w-16">
-            <AvatarImage src={profile.avatar_url || undefined} alt={profile.display_name || profile.username} />
-            <AvatarFallback className="bg-primary text-primary-foreground text-xl">
-              {getInitials(profile.display_name || profile.username)}
-            </AvatarFallback>
-          </Avatar>
-          <div className="flex-1">
-            <h1 className="text-xl font-bold">{profile.display_name || profile.username}</h1>
-            <p className="text-muted-foreground">@{profile.username}</p>
-            {profile.location_text && (
-              <p className="text-sm text-muted-foreground flex items-center gap-1 mt-1">
-                <MapPin className="h-4 w-4" /> {profile.location_text}
-              </p>
-            )}
-          </div>
-          {!isOwnProfile && (
-            <div>
-              {isFriend ? (
-                <Button variant="secondary" size="sm" disabled>
-                  <Check className="h-4 w-4 mr-1" /> Friends
-                </Button>
-              ) : isPending ? (
-                <Button variant="secondary" size="sm" disabled>
-                  <Clock className="h-4 w-4 mr-1" /> Pending
-                </Button>
-              ) : (
-                <Button size="sm" onClick={handleFriendRequest}>
-                  <UserPlus className="h-4 w-4 mr-1" /> Add Friend
-                </Button>
-              )}
-            </div>
-          )}
-        </div>
-        {profile.bio && <p className="text-foreground">{profile.bio}</p>}
-      </Card>
-    </div>
+    <OtherProfileClient
+      profile={profile}
+      photos={photos}
+      interests={interests}
+      stats={stats}
+      friendship={friendship}
+      currentUserId={user.id}
+    />
   );
 }
