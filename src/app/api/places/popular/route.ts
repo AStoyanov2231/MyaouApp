@@ -13,6 +13,7 @@ export async function GET() {
     .from("places")
     .select("*")
     .eq("is_active", true)
+    .gt("member_count", 0)
     .order("member_count", { ascending: false })
     .limit(20);
 

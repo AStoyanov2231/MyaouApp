@@ -75,6 +75,7 @@ export default function PlacesPage() {
   }, []);
 
   const handleSuggestionClick = async (prediction: AutocompletePrediction) => {
+    setSelectedPlace(null); // Clear old marker before loading new place
     setOverlayMode("loading");
     const place = await fetchPlaceDetails(prediction.place_id);
     if (place) {
@@ -105,8 +106,8 @@ export default function PlacesPage() {
     resetSession();
   };
 
-  // Determine which places to show on map (popular places when no query)
-  const displayPlaces = query.length < 2 ? popularPlaces : [];
+  // No markers on map - only selectedPlace marker renders via MapView
+  const displayPlaces: Place[] = [];
 
   return (
     <>

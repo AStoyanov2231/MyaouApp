@@ -30,9 +30,7 @@
       "Bash(git add:*)",
       "Bash(git commit -m \"$\\(cat <<''EOF''\nfix: lowercase ui component filenames for Linux/Vercel compatibility\n\nCo-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>\nEOF\n\\)\")",
       "Bash(git push:*)",
-      "Skill(skill-creator)",
-      "Skill(example-skills:code-sanity-check)",
-      "Bash(git checkout:*)"
+      "Bash(git log:*)"
     ]
   }
 }

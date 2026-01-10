@@ -2,31 +2,52 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient, createServiceClient } from "@/lib/supabase/server";
 
 export async function POST(request: NextRequest, { params }: { params: Promise<{ placeId: string }> }) {
-  const { placeId } = await params;
+  const { placeId } = await params; // This is now google_place_id
 
-  // Validate placeId format (UUID format for database ID)
-  const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-  if (!placeId || !uuidRegex.test(placeId)) {
-    return NextResponse.json({ error: "Invalid place ID format" }, { status: 400 });
+  if (!placeId) {
+    return NextResponse.json({ error: "Place ID required" }, { status: 400 });
   }
 
   const supabase = await createClient();
+  const serviceClient = createServiceClient();
   const { data: { user } } = await supabase.auth.getUser();
 
   if (!user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  // Check if place exists
-  const { data: place } = await supabase
+  // Parse place data from request body
+  let placeData;
+  try {
+    placeData = await request.json();
+  } catch {
+    return NextResponse.json({ error: "Invalid request body" }, { status: 400 });
+  }
+
+  // Upsert the place first (create if doesn't exist)
+  const { data: place, error: placeError } = await serviceClient
     .from("places")
-    .select("id")
-    .eq("id", placeId)
+    .upsert([{
+      google_place_id: placeId,
+      name: placeData.name || "Unknown",
+      formatted_address: placeData.formatted_address,
+      latitude: placeData.latitude,
+      longitude: placeData.longitude,
+      place_types: placeData.place_types || [],
+      photo_reference: placeData.photo_reference,
+      rating: placeData.rating,
+      user_ratings_total: placeData.user_ratings_total,
+      is_active: true,
+    }], {
+      onConflict: "google_place_id",
+      ignoreDuplicates: false,
+    })
+    .select()
     .single();
 
-  if (!place) {
-    console.error("Join place failed: Place not found", { placeId, userId: user.id });
-    return NextResponse.json({ error: "Place not found" }, { status: 404 });
+  if (placeError || !place) {
+    console.error("Place upsert failed:", { placeId, error: placeError?.message });
+    return NextResponse.json({ error: "Failed to create place" }, { status: 500 });
   }
 
   // Check if user profile exists, create if missing
@@ -38,7 +59,6 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
 
   if (!profile) {
     console.log("Profile missing for user, creating...", { userId: user.id });
-    const serviceClient = createServiceClient();
     const { error: profileError } = await serviceClient.from("profiles").upsert({
       id: user.id,
       username: `user_${user.id.slice(0, 8)}_${Date.now().toString(36)}`,
@@ -60,23 +80,23 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
   await supabase.from("place_members").delete().eq("user_id", user.id);
 
   const { data, error } = await supabase.from("place_members").insert({
-    place_id: placeId,
+    place_id: place.id, // Use the database UUID from upsert
     user_id: user.id,
   }).select("id").single();
 
   if (error?.code === "23505") {
-    return NextResponse.json({ message: "Already a member" });
+    return NextResponse.json({ message: "Already a member", placeId: place.id });
   }
   if (error) {
     console.error("Join place failed:", { placeId, userId: user.id, error: error.message, code: error.code });
-    // Provide more specific error messages
     if (error.code === "23503") {
       return NextResponse.json({ error: "Invalid place or user reference" }, { status: 400 });
     }
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 
-  console.log("User joined place:", { placeId, userId: user.id, membershipId: data?.id });
+  console.log("User joined place:", { googlePlaceId: placeId, dbPlaceId: place.id, userId: user.id, membershipId: data?.id });
 
-  return NextResponse.json({ success: true });
+  // Return the database place ID for redirect
+  return NextResponse.json({ success: true, placeId: place.id });
 }
