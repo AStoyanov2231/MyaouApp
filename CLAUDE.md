@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Workflow Rules
 
-- **Always run the `code-reviewer` agent after writing or modifying code** to check for bugs, security issues, and logic flaws before presenting to the user.
+- **After writing or modifying code, always run the `code-reviewer` agent as the final step before responding.** Pass the list of changed file paths as context (e.g., "Review changes in: src/app/auth/actions.ts, src/lib/utils.ts").
 
 ## Project Overview
 
