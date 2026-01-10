@@ -3,6 +3,7 @@ import { createClient } from "@/lib/supabase/client";
 import { useEffect, useState, useCallback, useRef } from "react";
 import type { User } from "@supabase/supabase-js";
 import type { Profile } from "@/types/database";
+import { useAppStore } from "@/stores/appStore";
 
 // Get the singleton client
 const supabase = createClient();
@@ -113,9 +114,10 @@ export function useAuth() {
             }
           }
         } else {
-          // User signed out
+          // User signed out - clear store and local state
           currentUserIdRef.current = null;
           setProfile(null);
+          useAppStore.getState().clearStore();
         }
 
         // Ensure loading is false after any auth event

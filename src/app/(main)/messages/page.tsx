@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useEffect } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
@@ -7,118 +7,23 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/useAuth";
-import { createClient } from "@/lib/supabase/client";
-import type { DMThread, Profile } from "@/types/database";
+import { useThreads, useIsMessagesLoaded } from "@/stores/selectors";
+import type { DMThreadWithParticipants } from "@/stores/appStore";
 import { formatDistanceToNow } from "date-fns";
 import { MapPin } from "lucide-react";
-
-const supabase = createClient();
 
 function getInitials(name: string) {
   return name.slice(0, 2).toUpperCase();
 }
 
-type DMThreadWithParticipants = DMThread & {
-  type: "dm";
-  participant_1: Profile;
-  participant_2: Profile;
-  unread_count?: number;
-};
-
-type PlaceThread = {
-  id: string;
-  type: "place";
-  name: string;
-  cached_photo_url?: string;
-  member_count?: number;
-  last_message_at?: string;
-  last_message_preview?: string;
-  unread_count?: number;
-};
-
-type Thread = DMThreadWithParticipants | PlaceThread;
-
 export default function MessagesPage() {
   const { user } = useAuth();
-  const [threads, setThreads] = useState<Thread[]>([]);
-  const [loading, setLoading] = useState(true);
+  const threads = useThreads();
+  const isLoaded = useIsMessagesLoaded();
   const searchParams = useSearchParams();
   const router = useRouter();
-  const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
 
-  const fetchThreads = useCallback(async () => {
-    const res = await fetch("/api/dm/threads");
-    const d = await res.json();
-    setThreads(d.threads || []);
-    setLoading(false);
-  }, []);
-
-  useEffect(() => {
-    let isMounted = true;
-
-    fetchThreads();
-
-    // Clean up existing channel
-    if (channelRef.current) {
-      supabase.removeChannel(channelRef.current);
-    }
-
-    // Subscribe to dm_threads changes for this user
-    const channel = supabase
-      .channel("dm-threads")
-      .on(
-        "postgres_changes",
-        {
-          event: "*",
-          schema: "public",
-          table: "dm_threads",
-        },
-        async () => {
-          // Refetch threads when any thread changes
-          if (isMounted) {
-            fetchThreads();
-          }
-        }
-      )
-      .on(
-        "postgres_changes",
-        {
-          event: "INSERT",
-          schema: "public",
-          table: "dm_messages",
-        },
-        async () => {
-          if (isMounted) fetchThreads();
-        }
-      )
-      .on(
-        "postgres_changes",
-        {
-          event: "INSERT",
-          schema: "public",
-          table: "messages",
-        },
-        async () => {
-          if (isMounted) fetchThreads();
-        }
-      )
-      .subscribe((status) => {
-        if (status === "SUBSCRIBED") {
-          console.log("Subscribed to dm threads realtime");
-        }
-      });
-
-    channelRef.current = channel;
-
-    return () => {
-      isMounted = false;
-      if (channelRef.current) {
-        supabase.removeChannel(channelRef.current);
-        channelRef.current = null;
-      }
-    };
-  }, [fetchThreads]);
-
+  // Handle DM thread creation from search params (e.g., /messages?user=123)
   useEffect(() => {
     const userId = searchParams.get("user");
     if (userId && user) {
@@ -134,7 +39,7 @@ export default function MessagesPage() {
     }
   }, [searchParams, user, router]);
 
-  if (loading) {
+  if (!isLoaded) {
     return (
       <div className="max-w-2xl mx-auto p-4">
         <Skeleton className="h-8 w-32 mb-4" />

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useOptimistic, useTransition } from "react";
+import { useState, useOptimistic, useTransition, useEffect } from "react";
 import { Check, X, MessageCircle, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
@@ -8,6 +8,8 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Card } from "@/components/ui/card";
 import Link from "next/link";
 import type { Profile, Friendship } from "@/types/database";
+import { useAppStore } from "@/stores/appStore";
+import { useFriends, useFriendRequests, useIsFriendsLoaded } from "@/stores/selectors";
 
 function getInitials(name: string | null | undefined): string {
   if (!name || name.length === 0) return "??";
@@ -20,8 +22,29 @@ interface FriendsTabsClientProps {
 }
 
 export function FriendsTabsClient({ initialFriends, initialRequests }: FriendsTabsClientProps) {
-  const [friends, setFriends] = useState(initialFriends);
-  const [requests, setRequests] = useState(initialRequests);
+  // Get store data and actions
+  const storeFriends = useFriends();
+  const storeRequests = useFriendRequests();
+  const isFriendsLoaded = useIsFriendsLoaded();
+  const setFriends = useAppStore((s) => s.setFriends);
+  const setRequests = useAppStore((s) => s.setRequests);
+  const addFriend = useAppStore((s) => s.addFriend);
+  const removeRequest = useAppStore((s) => s.removeRequest);
+
+  // Use store data if loaded, otherwise fall back to SSR props
+  const friends = isFriendsLoaded ? storeFriends : initialFriends;
+  const requests = isFriendsLoaded ? storeRequests : initialRequests;
+
+  // Sync SSR data to store on mount if store is empty
+  useEffect(() => {
+    if (!isFriendsLoaded && initialFriends.length > 0) {
+      setFriends(initialFriends);
+    }
+    if (!isFriendsLoaded && initialRequests.length > 0) {
+      setRequests(initialRequests);
+    }
+  }, [isFriendsLoaded, initialFriends, initialRequests, setFriends, setRequests]);
+
   const [, startTransition] = useTransition();
   const [processingIds, setProcessingIds] = useState<Set<string>>(new Set());
 
@@ -66,10 +89,10 @@ export function FriendsTabsClient({ initialFriends, initialRequests }: FriendsTa
           throw new Error("Failed to update friendship");
         }
 
-        // Only update real state on success
-        setRequests((prev) => prev.filter((r) => r.id !== id));
+        // Update store on success
+        removeRequest(id);
         if (status === "accepted") {
-          setFriends((prev) => [...prev, req.requester]);
+          addFriend(req.requester);
         }
       } catch (error) {
         // Optimistic state will revert since we didn't update backing state

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useOptimistic, useTransition } from "react";
+import { useState, useOptimistic, useTransition, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Card } from "@/components/ui/card";
 import { ProfileHeader } from "./ProfileHeader";
@@ -9,6 +9,15 @@ import { ProfileInterests } from "./ProfileInterests";
 import { PhotoGallery } from "./PhotoGallery";
 import { AccountSettings } from "./AccountSettings";
 import { compressImage, createThumbnail } from "@/lib/image-compression";
+import { useAppStore } from "@/stores/appStore";
+import {
+  useProfile as useStoreProfile,
+  usePhotos as useStorePhotos,
+  useInterests as useStoreInterests,
+  useAllTags as useStoreAllTags,
+  useProfileStats as useStoreStats,
+  useIsProfileLoaded,
+} from "@/stores/selectors";
 import type {
   Profile,
   ProfilePhoto,
@@ -29,17 +38,56 @@ export function ProfilePageClient({
   profile: initialProfile,
   photos: initialPhotos,
   interests: initialInterests,
-  allTags,
+  allTags: initialAllTags,
   stats: initialStats,
 }: ProfilePageClientProps) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
 
-  // State
-  const [profile, setProfile] = useState(initialProfile);
-  const [photos, setPhotos] = useState(initialPhotos);
-  const [interests, setInterests] = useState(initialInterests);
-  const [stats, setStats] = useState(initialStats);
+  // Get store data and actions
+  const storeProfile = useStoreProfile();
+  const storePhotos = useStorePhotos();
+  const storeInterests = useStoreInterests();
+  const storeAllTags = useStoreAllTags();
+  const storeStats = useStoreStats();
+  const isProfileLoaded = useIsProfileLoaded();
+
+  const setStoreProfile = useAppStore((s) => s.setProfile);
+  const setStorePhotos = useAppStore((s) => s.setPhotos);
+  const setStoreInterests = useAppStore((s) => s.setInterests);
+  const setStoreAllTags = useAppStore((s) => s.setAllTags);
+  const setStoreStats = useAppStore((s) => s.setStats);
+  const updateStoreStats = useAppStore((s) => s.updateStats);
+
+  // Use store data if loaded, otherwise fall back to SSR props
+  const profile = isProfileLoaded && storeProfile ? storeProfile : initialProfile;
+  const photos = isProfileLoaded ? storePhotos : initialPhotos;
+  const interests = isProfileLoaded ? storeInterests : initialInterests;
+  const allTags = isProfileLoaded && storeAllTags.length > 0 ? storeAllTags : initialAllTags;
+  const stats = isProfileLoaded ? storeStats : initialStats;
+
+  // Sync SSR data to store on mount if store is empty
+  useEffect(() => {
+    if (!isProfileLoaded) {
+      if (initialProfile) setStoreProfile(initialProfile);
+      if (initialPhotos.length > 0) setStorePhotos(initialPhotos);
+      if (initialInterests.length > 0) setStoreInterests(initialInterests);
+      if (initialAllTags.length > 0) setStoreAllTags(initialAllTags);
+      setStoreStats(initialStats);
+    }
+  }, [
+    isProfileLoaded,
+    initialProfile,
+    initialPhotos,
+    initialInterests,
+    initialAllTags,
+    initialStats,
+    setStoreProfile,
+    setStorePhotos,
+    setStoreInterests,
+    setStoreAllTags,
+    setStoreStats,
+  ]);
 
   // Optimistic updates for interests
   const [optimisticInterests, updateOptimisticInterests] = useOptimistic(
@@ -84,10 +132,11 @@ export function ProfilePageClient({
 
       if (!avatarRes.ok) return;
 
-      // Update local state
-      setPhotos((prev) => [...prev.map((p) => ({ ...p, is_avatar: false })), { ...data.photo, is_avatar: true }]);
-      setProfile((prev) => ({ ...prev, avatar_url: data.photo.url }));
-      setStats((prev) => ({ ...prev, photos_count: prev.photos_count + 1 }));
+      // Update store
+      const newPhotos = [...photos.map((p) => ({ ...p, is_avatar: false })), { ...data.photo, is_avatar: true }];
+      setStorePhotos(newPhotos);
+      setStoreProfile({ ...profile, avatar_url: data.photo.url });
+      updateStoreStats({ photos_count: stats.photos_count + 1 });
     } catch (error) {
       console.error("Failed to upload avatar:", error);
     }
@@ -110,8 +159,8 @@ export function ProfilePageClient({
 
       if (res.ok) {
         const data = await res.json();
-        setPhotos((prev) => [...prev, data.photo]);
-        setStats((prev) => ({ ...prev, photos_count: prev.photos_count + 1 }));
+        setStorePhotos([...photos, data.photo]);
+        updateStoreStats({ photos_count: stats.photos_count + 1 });
       }
     } catch (error) {
       console.error("Failed to upload photo:", error);
@@ -127,12 +176,12 @@ export function ProfilePageClient({
 
       if (res.ok) {
         const deletedPhoto = photos.find((p) => p.id === photoId);
-        setPhotos((prev) => prev.filter((p) => p.id !== photoId));
-        setStats((prev) => ({ ...prev, photos_count: prev.photos_count - 1 }));
+        setStorePhotos(photos.filter((p) => p.id !== photoId));
+        updateStoreStats({ photos_count: Math.max(0, stats.photos_count - 1) });
 
         // Clear avatar if deleted photo was avatar
         if (deletedPhoto?.is_avatar) {
-          setProfile((prev) => ({ ...prev, avatar_url: null }));
+          setStoreProfile({ ...profile, avatar_url: null });
         }
       }
     } catch (error) {
@@ -151,13 +200,13 @@ export function ProfilePageClient({
 
       if (res.ok) {
         const data = await res.json();
-        setPhotos((prev) =>
-          prev.map((p) => ({
+        setStorePhotos(
+          photos.map((p) => ({
             ...p,
             is_avatar: p.id === photoId,
           }))
         );
-        setProfile((prev) => ({ ...prev, avatar_url: data.photo.url }));
+        setStoreProfile({ ...profile, avatar_url: data.photo.url });
       }
     } catch (error) {
       console.error("Failed to set avatar:", error);
@@ -190,18 +239,19 @@ export function ProfilePageClient({
 
         if (res.ok) {
           const data = await res.json();
-          // Replace temp with real interest
-          setInterests((prev) =>
-            prev.filter((i) => !i.id.startsWith("temp-")).concat(data.interest)
-          );
+          // Replace temp with real interest in store
+          const newInterests = interests
+            .filter((i) => !i.id.startsWith("temp-"))
+            .concat(data.interest);
+          setStoreInterests(newInterests);
         } else {
-          // Rollback on failure - remove temp interest
-          setInterests((prev) => prev.filter((i) => i.id !== tempInterest.id));
+          // Rollback on failure - remove temp interest from store
+          setStoreInterests(interests.filter((i) => i.id !== tempInterest.id));
         }
       } catch (error) {
         console.error("Failed to add interest:", error);
         // Rollback on error
-        setInterests((prev) => prev.filter((i) => i.id !== tempInterest.id));
+        setStoreInterests(interests.filter((i) => i.id !== tempInterest.id));
       }
     });
   };
@@ -219,16 +269,16 @@ export function ProfilePageClient({
         });
 
         if (res.ok) {
-          setInterests((prev) => prev.filter((i) => i.id !== interestId));
+          setStoreInterests(interests.filter((i) => i.id !== interestId));
         } else if (removedInterest) {
           // Rollback on failure
-          setInterests((prev) => [...prev, removedInterest]);
+          setStoreInterests([...interests, removedInterest]);
         }
       } catch (error) {
         console.error("Failed to remove interest:", error);
         // Rollback on error
         if (removedInterest) {
-          setInterests((prev) => [...prev, removedInterest]);
+          setStoreInterests([...interests, removedInterest]);
         }
       }
     });
@@ -242,6 +292,8 @@ export function ProfilePageClient({
       });
 
       if (res.ok) {
+        // Clear the store on account deletion
+        useAppStore.getState().clearStore();
         router.push("/welcome");
       }
     } catch (error) {
@@ -257,7 +309,7 @@ export function ProfilePageClient({
       });
 
       if (res.ok) {
-        setProfile((prev) => ({ ...prev, scheduled_deletion_at: null }));
+        setStoreProfile({ ...profile, scheduled_deletion_at: null });
       }
     } catch (error) {
       console.error("Failed to cancel deletion:", error);
