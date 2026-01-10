@@ -4,7 +4,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Workflow Rules
 
-- **After writing or modifying code, always run the `code-reviewer` agent as the final step before responding.** Pass the list of changed file paths as context (e.g., "Review changes in: src/app/auth/actions.ts, src/lib/utils.ts").
+**After writing or modifying code, follow this order:**
+1. Run type verification using `/type-verifier` or `npx tsc --noEmit`. Fix any type errors before proceeding.
+2. Run the `code-reviewer` agent as the final step before responding. Pass changed file paths as context (e.g., "Review changes in: src/app/auth/actions.ts, src/lib/utils.ts").
 
 ## Project Overview
 
@@ -39,10 +41,14 @@ npm run lint     # Run ESLint
 │   ├── code-reviewer.md     # Code review agent (uses code-review-skill)
 │   └── supabase-optimizer.md # Supabase query optimization agent
 └── skills/                  # Custom Claude Code skills
-    └── code-review-skill/   # PR review simulation skill
+    ├── code-review-skill/   # PR review simulation skill
+    │   ├── SKILL.md
+    │   └── references/
+    │       └── checklist.md
+    └── type-verifier/       # TypeScript type verification skill
         ├── SKILL.md
         └── references/
-            └── checklist.md
+            └── common-errors.md
 
 src/
 ├── app/
@@ -281,4 +287,4 @@ NEXT_PUBLIC_APP_URL
 
 - **code-review-skill** - Senior developer PR review simulation. Checks for logic flaws, pattern violations, dumb logic, and breaking changes. Outputs structured review with severity ratings.
 
-Invoke skills manually with `/code-review-skill` or let agents use them automatically.
+Invoke skill manually with `/code-review-skill`, or let agent use it automatically.
