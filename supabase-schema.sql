@@ -22,7 +22,7 @@ CREATE TABLE profiles (
     updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
-CREATE INDEX idx_profiles_username ON profiles(username);
+-- Note: username already has UNIQUE constraint which creates an implicit index
 
 -- Places table (cached Google Places data)
 CREATE TABLE places (
@@ -74,6 +74,7 @@ CREATE TABLE place_history (
 );
 
 CREATE INDEX idx_place_history_user_visited ON place_history(user_id, visited_at DESC);
+CREATE INDEX idx_place_history_place ON place_history(place_id);
 
 -- Messages table
 CREATE TABLE messages (
@@ -92,6 +93,8 @@ CREATE TABLE messages (
 );
 
 CREATE INDEX idx_messages_place ON messages(place_id, created_at DESC);
+CREATE INDEX idx_messages_sender ON messages(sender_id);
+CREATE INDEX idx_messages_reply_to ON messages(reply_to_id) WHERE reply_to_id IS NOT NULL;
 
 -- Friendships table
 CREATE TABLE friendships (
@@ -122,6 +125,8 @@ CREATE TABLE dm_threads (
 -- Unique index to prevent duplicate threads (order-independent)
 CREATE UNIQUE INDEX idx_dm_threads_participants_unique
 ON dm_threads (LEAST(participant_1_id, participant_2_id), GREATEST(participant_1_id, participant_2_id));
+CREATE INDEX idx_dm_threads_participant_1 ON dm_threads(participant_1_id);
+CREATE INDEX idx_dm_threads_participant_2 ON dm_threads(participant_2_id);
 
 -- DM messages table
 CREATE TABLE dm_messages (
@@ -138,6 +143,7 @@ CREATE TABLE dm_messages (
 );
 
 CREATE INDEX idx_dm_messages_thread ON dm_messages(thread_id, created_at DESC);
+CREATE INDEX idx_dm_messages_sender ON dm_messages(sender_id);
 
 -- Media uploads table
 CREATE TABLE media_uploads (
@@ -155,9 +161,13 @@ CREATE TABLE media_uploads (
     created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
+CREATE INDEX idx_media_uploads_user ON media_uploads(user_id);
+
 -- Triggers and functions
 CREATE OR REPLACE FUNCTION update_updated_at()
-RETURNS TRIGGER AS $$
+RETURNS TRIGGER
+SET search_path = public
+AS $$
 BEGIN
     NEW.updated_at = NOW();
     RETURN NEW;
@@ -170,7 +180,9 @@ CREATE TRIGGER messages_updated_at BEFORE UPDATE ON messages FOR EACH ROW EXECUT
 
 -- Update place member count
 CREATE OR REPLACE FUNCTION update_place_member_count()
-RETURNS TRIGGER AS $$
+RETURNS TRIGGER
+SET search_path = public
+AS $$
 BEGIN
     IF TG_OP = 'INSERT' THEN
         UPDATE places SET member_count = member_count + 1 WHERE id = NEW.place_id;
@@ -185,7 +197,10 @@ CREATE TRIGGER place_members_count AFTER INSERT OR DELETE ON place_members FOR E
 
 -- Auto-record place visit when joining a place
 CREATE OR REPLACE FUNCTION record_place_visit()
-RETURNS TRIGGER AS $$
+RETURNS TRIGGER
+SECURITY DEFINER
+SET search_path = public
+AS $$
 BEGIN
     INSERT INTO place_history (user_id, place_id, visited_at)
     VALUES (NEW.user_id, NEW.place_id, NOW())
@@ -199,7 +214,9 @@ CREATE TRIGGER record_visit_on_join AFTER INSERT ON place_members FOR EACH ROW E
 
 -- Update place message count
 CREATE OR REPLACE FUNCTION update_place_message_count()
-RETURNS TRIGGER AS $$
+RETURNS TRIGGER
+SET search_path = public
+AS $$
 BEGIN
     IF TG_OP = 'INSERT' THEN
         UPDATE places SET message_count = message_count + 1 WHERE id = NEW.place_id;
@@ -212,7 +229,9 @@ CREATE TRIGGER place_messages_count AFTER INSERT ON messages FOR EACH ROW EXECUT
 
 -- Update DM thread last message
 CREATE OR REPLACE FUNCTION update_dm_thread_last_message()
-RETURNS TRIGGER AS $$
+RETURNS TRIGGER
+SET search_path = public
+AS $$
 BEGIN
     UPDATE dm_threads SET
         last_message_at = NEW.created_at,
@@ -251,7 +270,10 @@ CREATE TRIGGER on_auth_user_created AFTER INSERT ON auth.users FOR EACH ROW EXEC
 
 -- Helper: Check if users are friends
 CREATE OR REPLACE FUNCTION are_friends(user_a UUID, user_b UUID)
-RETURNS BOOLEAN AS $$
+RETURNS BOOLEAN
+SECURITY DEFINER
+SET search_path = public
+AS $$
 BEGIN
     RETURN EXISTS (
         SELECT 1 FROM friendships
@@ -260,11 +282,14 @@ BEGIN
              OR (requester_id = user_b AND addressee_id = user_a))
     );
 END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
+$$ LANGUAGE plpgsql;
 
 -- Helper: Get or create DM thread
 CREATE OR REPLACE FUNCTION get_or_create_dm_thread(user_a UUID, user_b UUID)
-RETURNS UUID AS $$
+RETURNS UUID
+SECURITY DEFINER
+SET search_path = public
+AS $$
 DECLARE
     thread_id UUID;
 BEGIN
@@ -284,11 +309,13 @@ BEGIN
 
     RETURN thread_id;
 END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
+$$ LANGUAGE plpgsql;
 
 -- Helper: Get popular places (fallback)
 CREATE OR REPLACE FUNCTION get_popular_places(limit_count INTEGER DEFAULT 20)
-RETURNS SETOF places AS $$
+RETURNS SETOF places
+SET search_path = public
+AS $$
 BEGIN
     RETURN QUERY
     SELECT * FROM places
@@ -311,53 +338,56 @@ ALTER TABLE place_history ENABLE ROW LEVEL SECURITY;
 
 -- Profiles: public read, self update
 CREATE POLICY "Profiles are publicly viewable" ON profiles FOR SELECT USING (true);
-CREATE POLICY "Users can update own profile" ON profiles FOR UPDATE USING (auth.uid() = id);
-CREATE POLICY "Users can insert own profile" ON profiles FOR INSERT WITH CHECK (auth.uid() = id);
+CREATE POLICY "Users can update own profile" ON profiles FOR UPDATE USING ((select auth.uid()) = id);
+CREATE POLICY "Users can insert own profile" ON profiles FOR INSERT WITH CHECK ((select auth.uid()) = id);
 
 -- Places: authenticated read
 CREATE POLICY "Places are viewable by authenticated users" ON places FOR SELECT TO authenticated USING (true);
 
--- Place members
-CREATE POLICY "Users can view own membership" ON place_members FOR SELECT TO authenticated
-USING (user_id = auth.uid());
-CREATE POLICY "Members can view place members" ON place_members FOR SELECT TO authenticated
-USING (EXISTS (SELECT 1 FROM place_members pm WHERE pm.place_id = place_members.place_id AND pm.user_id = auth.uid()));
-CREATE POLICY "Users can join places" ON place_members FOR INSERT TO authenticated WITH CHECK (user_id = auth.uid());
-CREATE POLICY "Users can leave places" ON place_members FOR DELETE TO authenticated USING (user_id = auth.uid());
-CREATE POLICY "Users can update own membership" ON place_members FOR UPDATE TO authenticated USING (user_id = auth.uid());
+-- Place members (consolidated SELECT policy to avoid multiple permissive policies)
+CREATE POLICY "Users can view place members" ON place_members FOR SELECT TO authenticated
+USING (user_id = (select auth.uid()) OR EXISTS (SELECT 1 FROM place_members pm WHERE pm.place_id = place_members.place_id AND pm.user_id = (select auth.uid())));
+CREATE POLICY "Users can join places" ON place_members FOR INSERT TO authenticated WITH CHECK (user_id = (select auth.uid()));
+CREATE POLICY "Users can leave places" ON place_members FOR DELETE TO authenticated USING (user_id = (select auth.uid()));
+CREATE POLICY "Users can update own membership" ON place_members FOR UPDATE TO authenticated USING (user_id = (select auth.uid()));
 
 -- Messages
 CREATE POLICY "Members can view place messages" ON messages FOR SELECT TO authenticated
-USING (EXISTS (SELECT 1 FROM place_members WHERE place_id = messages.place_id AND user_id = auth.uid()));
+USING (EXISTS (SELECT 1 FROM place_members WHERE place_id = messages.place_id AND user_id = (select auth.uid())));
 CREATE POLICY "Members can send messages" ON messages FOR INSERT TO authenticated
-WITH CHECK (sender_id = auth.uid() AND EXISTS (SELECT 1 FROM place_members WHERE place_id = messages.place_id AND user_id = auth.uid()));
-CREATE POLICY "Users can edit own messages" ON messages FOR UPDATE TO authenticated USING (sender_id = auth.uid());
-CREATE POLICY "Users can delete own messages" ON messages FOR DELETE TO authenticated USING (sender_id = auth.uid());
+WITH CHECK (sender_id = (select auth.uid()) AND EXISTS (SELECT 1 FROM place_members WHERE place_id = messages.place_id AND user_id = (select auth.uid())));
+CREATE POLICY "Users can edit own messages" ON messages FOR UPDATE TO authenticated USING (sender_id = (select auth.uid()));
+CREATE POLICY "Users can delete own messages" ON messages FOR DELETE TO authenticated USING (sender_id = (select auth.uid()));
 
 -- Friendships
 CREATE POLICY "Users can view own friendships" ON friendships FOR SELECT TO authenticated
-USING (requester_id = auth.uid() OR addressee_id = auth.uid());
-CREATE POLICY "Users can send friend requests" ON friendships FOR INSERT TO authenticated WITH CHECK (requester_id = auth.uid());
-CREATE POLICY "Addressee can respond to requests" ON friendships FOR UPDATE TO authenticated USING (addressee_id = auth.uid());
+USING (requester_id = (select auth.uid()) OR addressee_id = (select auth.uid()));
+CREATE POLICY "Users can send friend requests" ON friendships FOR INSERT TO authenticated WITH CHECK (requester_id = (select auth.uid()));
+CREATE POLICY "Addressee can respond to requests" ON friendships FOR UPDATE TO authenticated USING (addressee_id = (select auth.uid()));
 CREATE POLICY "Users can remove friendships" ON friendships FOR DELETE TO authenticated
-USING (requester_id = auth.uid() OR addressee_id = auth.uid());
+USING (requester_id = (select auth.uid()) OR addressee_id = (select auth.uid()));
 
 -- DM threads
 CREATE POLICY "Users can view own DM threads" ON dm_threads FOR SELECT TO authenticated
-USING (participant_1_id = auth.uid() OR participant_2_id = auth.uid());
+USING (participant_1_id = (select auth.uid()) OR participant_2_id = (select auth.uid()));
 
 -- DM messages
 CREATE POLICY "Users can view DM messages in their threads" ON dm_messages FOR SELECT TO authenticated
 USING (EXISTS (SELECT 1 FROM dm_threads WHERE id = dm_messages.thread_id
-AND (participant_1_id = auth.uid() OR participant_2_id = auth.uid())));
+AND (participant_1_id = (select auth.uid()) OR participant_2_id = (select auth.uid()))));
 CREATE POLICY "Users can send DMs in their threads" ON dm_messages FOR INSERT TO authenticated
-WITH CHECK (sender_id = auth.uid() AND EXISTS (SELECT 1 FROM dm_threads WHERE id = dm_messages.thread_id
-AND (participant_1_id = auth.uid() OR participant_2_id = auth.uid())));
-CREATE POLICY "Users can delete own DMs" ON dm_messages FOR DELETE TO authenticated USING (sender_id = auth.uid());
+WITH CHECK (sender_id = (select auth.uid()) AND EXISTS (SELECT 1 FROM dm_threads WHERE id = dm_messages.thread_id
+AND (participant_1_id = (select auth.uid()) OR participant_2_id = (select auth.uid()))));
+CREATE POLICY "Recipients can mark messages as read" ON dm_messages FOR UPDATE TO authenticated
+USING (EXISTS (SELECT 1 FROM dm_threads WHERE id = dm_messages.thread_id
+AND (participant_1_id = (select auth.uid()) OR participant_2_id = (select auth.uid()))));
+CREATE POLICY "Users can delete own DMs" ON dm_messages FOR DELETE TO authenticated USING (sender_id = (select auth.uid()));
 
 -- Media uploads
-CREATE POLICY "Users can view own uploads" ON media_uploads FOR SELECT TO authenticated USING (user_id = auth.uid());
-CREATE POLICY "Users can create uploads" ON media_uploads FOR INSERT TO authenticated WITH CHECK (user_id = auth.uid());
+CREATE POLICY "Users can view own uploads" ON media_uploads FOR SELECT TO authenticated USING (user_id = (select auth.uid()));
+CREATE POLICY "Users can create uploads" ON media_uploads FOR INSERT TO authenticated WITH CHECK (user_id = (select auth.uid()));
 
 -- Place history
-CREATE POLICY "Users can view own place history" ON place_history FOR SELECT TO authenticated USING (user_id = auth.uid());
+CREATE POLICY "Users can view own place history" ON place_history FOR SELECT TO authenticated USING (user_id = (select auth.uid()));
+CREATE POLICY "Users can insert own place history" ON place_history FOR INSERT TO authenticated WITH CHECK (user_id = (select auth.uid()));
+CREATE POLICY "Users can update own place history" ON place_history FOR UPDATE TO authenticated USING (user_id = (select auth.uid()));
