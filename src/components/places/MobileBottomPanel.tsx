@@ -26,15 +26,28 @@ export function MobileBottomPanel({ place, onClose }: MobileBottomPanelProps) {
       setLoading(true);
       setError("");
 
-      const response = await fetch(`/api/places/${place.id}/join`, {
+      const response = await fetch(`/api/places/${place.google_place_id}/join`, {
         method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: place.name,
+          formatted_address: place.formatted_address,
+          latitude: place.latitude,
+          longitude: place.longitude,
+          place_types: place.place_types,
+          photo_reference: place.photo_reference,
+          rating: place.rating,
+          user_ratings_total: place.user_ratings_total,
+        }),
       });
 
+      const data = await response.json();
+
       if (!response.ok) {
-        throw new Error("Failed to join place");
+        throw new Error(data.error || "Failed to join place");
       }
 
-      router.push(`/messages/place/${place.id}`);
+      router.push(`/messages/place/${data.placeId}`);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to join place");
       setLoading(false);
