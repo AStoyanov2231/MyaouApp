@@ -19,7 +19,9 @@ CREATE TABLE profiles (
     is_online BOOLEAN DEFAULT FALSE,
     last_seen_at TIMESTAMPTZ DEFAULT NOW(),
     created_at TIMESTAMPTZ DEFAULT NOW(),
-    updated_at TIMESTAMPTZ DEFAULT NOW()
+    updated_at TIMESTAMPTZ DEFAULT NOW(),
+    deleted_at TIMESTAMPTZ,
+    scheduled_deletion_at TIMESTAMPTZ
 );
 
 -- Note: username already has UNIQUE constraint which creates an implicit index
@@ -163,6 +165,41 @@ CREATE TABLE media_uploads (
 
 CREATE INDEX idx_media_uploads_user ON media_uploads(user_id);
 
+-- Profile photos table
+CREATE TABLE profile_photos (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    user_id UUID NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
+    storage_path TEXT NOT NULL,
+    url TEXT NOT NULL,
+    thumbnail_url TEXT,
+    is_avatar BOOLEAN DEFAULT FALSE,
+    display_order INTEGER DEFAULT 0,
+    created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE INDEX idx_profile_photos_user ON profile_photos(user_id);
+
+-- Interest tags table (lookup table for available interests)
+CREATE TABLE interest_tags (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    name TEXT UNIQUE NOT NULL,
+    category TEXT NOT NULL,
+    icon TEXT,
+    display_order INTEGER DEFAULT 0
+);
+
+-- Profile interests table (user's selected interests)
+CREATE TABLE profile_interests (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    user_id UUID NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
+    tag_id UUID NOT NULL REFERENCES interest_tags(id) ON DELETE CASCADE,
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    UNIQUE(user_id, tag_id)
+);
+
+CREATE INDEX idx_profile_interests_user ON profile_interests(user_id);
+CREATE INDEX idx_profile_interests_tag ON profile_interests(tag_id);
+
 -- Triggers and functions
 CREATE OR REPLACE FUNCTION update_updated_at()
 RETURNS TRIGGER
@@ -242,6 +279,21 @@ END;
 $$ LANGUAGE plpgsql;
 
 CREATE TRIGGER dm_messages_update_thread AFTER INSERT ON dm_messages FOR EACH ROW EXECUTE FUNCTION update_dm_thread_last_message();
+
+-- Enforce maximum 5 interests per user
+CREATE OR REPLACE FUNCTION check_max_interests()
+RETURNS TRIGGER
+SET search_path = public
+AS $$
+BEGIN
+    IF (SELECT COUNT(*) FROM profile_interests WHERE user_id = NEW.user_id) >= 5 THEN
+        RAISE EXCEPTION 'Maximum of 5 interests allowed per user';
+    END IF;
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER enforce_max_interests BEFORE INSERT ON profile_interests FOR EACH ROW EXECUTE FUNCTION check_max_interests();
 
 -- Auto-create profile on user signup
 -- Note: This trigger uses SECURITY DEFINER to bypass RLS
@@ -349,6 +401,9 @@ ALTER TABLE dm_threads ENABLE ROW LEVEL SECURITY;
 ALTER TABLE dm_messages ENABLE ROW LEVEL SECURITY;
 ALTER TABLE media_uploads ENABLE ROW LEVEL SECURITY;
 ALTER TABLE place_history ENABLE ROW LEVEL SECURITY;
+ALTER TABLE profile_photos ENABLE ROW LEVEL SECURITY;
+ALTER TABLE interest_tags ENABLE ROW LEVEL SECURITY;
+ALTER TABLE profile_interests ENABLE ROW LEVEL SECURITY;
 
 -- Profiles: public read, self update
 CREATE POLICY "Profiles are publicly viewable" ON profiles FOR SELECT USING (true);
@@ -405,3 +460,40 @@ CREATE POLICY "Users can create uploads" ON media_uploads FOR INSERT TO authenti
 CREATE POLICY "Users can view own place history" ON place_history FOR SELECT TO authenticated USING (user_id = (select auth.uid()));
 CREATE POLICY "Users can insert own place history" ON place_history FOR INSERT TO authenticated WITH CHECK (user_id = (select auth.uid()));
 CREATE POLICY "Users can update own place history" ON place_history FOR UPDATE TO authenticated USING (user_id = (select auth.uid()));
+
+-- Profile photos
+CREATE POLICY "Users can view all profile photos" ON profile_photos FOR SELECT TO authenticated USING (true);
+CREATE POLICY "Users can upload own photos" ON profile_photos FOR INSERT TO authenticated WITH CHECK (user_id = (select auth.uid()));
+CREATE POLICY "Users can update own photos" ON profile_photos FOR UPDATE TO authenticated USING (user_id = (select auth.uid()));
+CREATE POLICY "Users can delete own photos" ON profile_photos FOR DELETE TO authenticated USING (user_id = (select auth.uid()));
+
+-- Interest tags (public read-only lookup table)
+CREATE POLICY "Interest tags are publicly viewable" ON interest_tags FOR SELECT USING (true);
+
+-- Profile interests
+CREATE POLICY "Users can view all interests" ON profile_interests FOR SELECT TO authenticated USING (true);
+CREATE POLICY "Users can add own interests" ON profile_interests FOR INSERT TO authenticated WITH CHECK (user_id = (select auth.uid()));
+CREATE POLICY "Users can remove own interests" ON profile_interests FOR DELETE TO authenticated USING (user_id = (select auth.uid()));
+
+-- Seed default interest tags
+INSERT INTO interest_tags (name, category, icon, display_order) VALUES
+('Photography', 'Hobbies', 'camera', 1),
+('Music', 'Hobbies', 'music', 2),
+('Gaming', 'Hobbies', 'gamepad-2', 3),
+('Travel', 'Lifestyle', 'plane', 4),
+('Fitness', 'Lifestyle', 'dumbbell', 5),
+('Food & Dining', 'Lifestyle', 'utensils', 6),
+('Art', 'Hobbies', 'palette', 7),
+('Movies', 'Entertainment', 'film', 8),
+('Reading', 'Hobbies', 'book-open', 9),
+('Sports', 'Lifestyle', 'trophy', 10),
+('Technology', 'Professional', 'cpu', 11),
+('Fashion', 'Lifestyle', 'shirt', 12),
+('Nature', 'Lifestyle', 'trees', 13),
+('Pets', 'Lifestyle', 'paw-print', 14),
+('Cooking', 'Hobbies', 'chef-hat', 15),
+('Dancing', 'Hobbies', 'music-2', 16),
+('Yoga', 'Lifestyle', 'heart', 17),
+('Coffee', 'Lifestyle', 'coffee', 18),
+('Nightlife', 'Entertainment', 'moon', 19),
+('Networking', 'Professional', 'users', 20);

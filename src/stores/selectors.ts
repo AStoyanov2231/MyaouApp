@@ -21,8 +21,10 @@ export const useCurrentPlace = () => useAppStore((state) => state.currentPlace);
 export const useIsMessagesLoaded = () => useAppStore((state) => state.isMessagesLoaded);
 
 // Thread messages selector (for specific thread)
+// Use stable empty array to prevent unnecessary re-renders
+const EMPTY_MESSAGES: never[] = [];
 export const useThreadMessages = (threadId: string) =>
-  useAppStore((state) => state.threadMessages[threadId] ?? []);
+  useAppStore((state) => state.threadMessages[threadId] ?? EMPTY_MESSAGES);
 
 // Loading selectors
 export const useIsPreloading = () => useAppStore((state) => state.isPreloading);
