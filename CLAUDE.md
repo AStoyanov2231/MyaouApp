@@ -116,6 +116,10 @@ src/
 - `threads` - List/create DM threads
 - `[threadId]` - Get thread, send message
 - `[threadId]/read` - Mark as read
+- `[threadId]/[messageId]` - PATCH (edit) and DELETE (soft delete) own messages
+  - 15-minute edit window (editing disabled after)
+  - Delete always allowed (soft delete with `is_deleted` flag)
+  - Requires thread membership verification
 
 **Friends** (`/api/friends/`):
 - `GET/POST /` - List friends, send request
@@ -146,12 +150,46 @@ Core tables: `profiles`, `places`, `place_members`, `messages`, `friendships`, `
 
 Type definitions in `src/types/database.ts` - keep synchronized with schema changes.
 
+## State Management (Zustand)
+
+Global state in `src/stores/appStore.ts` using Zustand:
+
+**State:**
+- `threadMessages` - Map of thread/place ID to messages array
+- `friends` / `requests` - Friends list and pending requests
+- `onlineUsers` - Set of user IDs currently online (from Presence)
+- `isPreloading` - Loading state flag
+
+**Key Actions:**
+- `setThreadMessages` / `addMessage` / `updateMessage` - Message CRUD
+- `setOnlineUsers` - Update online users from Presence sync
+- `addFriend` / `removeFriend` / `removeRequest` - Friend management
+- `markThreadRead` - Mark messages as read
+
+**Selectors** (`src/stores/selectors.ts`):
+- `useThreadMessages(threadId)` - Get messages for a thread (returns stable empty array if none)
+- `useFriends` / `useFriendRequests` - Get friends/requests
+- `useOnlineUsers` - Get Set of online user IDs
+- `useIsPreloading` - Check loading state
+
+**Pattern to avoid infinite re-renders:**
+Use `useAppStore.getState()` inside useEffect instead of including store actions as dependencies:
+```tsx
+useEffect(() => {
+  const { setThreadMessages } = useAppStore.getState();
+  // fetch and call setThreadMessages
+}, [threadId]); // Don't include setThreadMessages as dependency
+```
+
 ## Hooks
 
 - **useAuth** - Auth state, profile fetching, auto-creates profile if missing
 - **useMessages** - Place messages with Realtime subscription
 - **usePlacesAutocomplete** - Google Places autocomplete with session tokens
 - **useUnreadMessages** - Unread count across DMs and place chats with Realtime
+- **usePresence** - Supabase Presence for online status tracking. Tracks current user's presence and syncs online users to store. Handles visibility changes (untrack when tab hidden, re-track when visible).
+- **useRealtimeSync** - Global realtime subscription for dm_messages and messages tables. Listens for INSERT/UPDATE events and syncs to Zustand store.
+- **useIsUserOnline** - Selector hook to check if a specific user is online (reads from store's `onlineUsers` Set)
 
 ## UI Components
 
@@ -181,6 +219,19 @@ Built on Radix UI primitives with Tailwind styling:
 - **SearchView.tsx** - Autocomplete search with suggestions
 - **DetailsView.tsx** - Place details with "Join Place" button
 - **PlaceCard.tsx** - Mobile grid view card
+
+### Message UI Features
+
+**DM Conversation** (`src/app/(main)/messages/[threadId]/page.tsx`):
+- Online indicator (green dot) in conversation header
+- Edit/delete dropdown menu on own messages (MoreVertical icon)
+- "(edited)" indicator on edited messages
+- "This message was deleted" placeholder for soft-deleted messages
+- 15-minute edit window enforced (edit button disabled after)
+
+**Friends List** (`src/components/friends/FriendsTabsClient.tsx`):
+- Green online indicator dot on avatar for online friends
+- "Online" text label instead of username when online
 
 ## Styling
 
@@ -283,9 +334,25 @@ User searches → /api/places/autocomplete (Google API + session token)
 
 ### Real-time Messaging
 
+**Supabase Realtime Publication:**
+Tables in `supabase_realtime` publication (required for postgres_changes to work):
+- `dm_messages` - DM conversations
+- `messages` - Place group chats
+- `profiles` - Profile updates
+- `friendships` - Friend request notifications
+
+**Flow:**
 ```
-useMessages hook → Initial fetch → Supabase Realtime subscription
-→ Listen for INSERT/UPDATE/DELETE → Auto-update UI
+useRealtimeSync hook → Subscribe to postgres_changes on dm_messages, messages
+→ Listen for INSERT/UPDATE events → Update Zustand store → UI re-renders
+```
+
+**Online Presence:**
+```
+usePresence hook → Subscribe to "online-users" Presence channel
+→ Track current user with channel.track()
+→ Listen for presence sync events → Update store.onlineUsers Set
+→ Handle visibility changes (untrack when hidden, track when visible)
 ```
 
 ### Image Compression
@@ -322,7 +389,8 @@ NEXT_PUBLIC_APP_URL
 - User search for adding friends
 - Typing indicators
 - Push notifications
-- Message editing/reactions
+- Message reactions (emojis)
+- Place chat message edit/delete (only DMs have this currently)
 
 ## Claude Code Configuration
 
