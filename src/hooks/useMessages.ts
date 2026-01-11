@@ -1,28 +1,41 @@
 "use client";
-import { useState, useEffect, useCallback, useRef } from "react";
-import { createClient } from "@/lib/supabase/client";
+import { useState, useEffect, useCallback } from "react";
 import type { Message } from "@/types/database";
+import { useAppStore } from "@/stores/appStore";
+import { useThreadMessages } from "@/stores/selectors";
 
-// Get the singleton client
-const supabase = createClient();
-
+/**
+ * Hook for place chat messages.
+ * Reads from store (updated by global useRealtimeSync) and provides send functionality.
+ * No per-route Realtime subscription - global handler manages it.
+ */
 export function useMessages(placeId: string) {
-  const [messages, setMessages] = useState<Message[]>([]);
   const [loading, setLoading] = useState(true);
-  const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
+
+  // Read messages from store (updated by global useRealtimeSync)
+  const storeMessages = useThreadMessages(placeId);
+  const setThreadMessages = useAppStore((s) => s.setThreadMessages);
+  const markThreadRead = useAppStore((s) => s.markThreadRead);
+
+  // Local messages as fallback if store is empty
+  const [localMessages, setLocalMessages] = useState<Message[]>([]);
+  const messages = storeMessages.length > 0 ? (storeMessages as Message[]) : localMessages;
 
   const fetchMessages = useCallback(async () => {
     setLoading(true);
     try {
       const res = await fetch(`/api/messages/${placeId}`);
       const data = await res.json();
-      setMessages(data.messages || []);
+      const msgs = data.messages || [];
+      setLocalMessages(msgs);
+      // Update store so global sync can add new messages to it
+      setThreadMessages(placeId, msgs);
     } catch (error) {
       console.error("Failed to fetch messages:", error);
     } finally {
       setLoading(false);
     }
-  }, [placeId]);
+  }, [placeId, setThreadMessages]);
 
   const sendMessage = useCallback(
     async (content: string, mediaUrl?: string) => {
@@ -42,75 +55,13 @@ export function useMessages(placeId: string) {
   );
 
   useEffect(() => {
-    let isMounted = true;
-    let reconnectTimeout: NodeJS.Timeout | null = null;
-
-    const setupChannel = () => {
-      // Clean up any existing channel before creating a new one
-      if (channelRef.current) {
-        supabase.removeChannel(channelRef.current);
-      }
-
-      // Set up realtime subscription (removed Date.now() to prevent orphaned channels)
-      const channel = supabase
-        .channel(`place:${placeId}`)
-        .on(
-          "postgres_changes",
-          {
-            event: "INSERT",
-            schema: "public",
-            table: "messages",
-            filter: `place_id=eq.${placeId}`,
-          },
-          async () => {
-            if (!isMounted) return;
-            const res = await fetch(`/api/messages/${placeId}`);
-            const data = await res.json();
-            if (isMounted) setMessages(data.messages || []);
-            // Mark messages as read since user is viewing this place
-            fetch(`/api/places/${placeId}/read`, { method: "POST" });
-          }
-        )
-        .subscribe((status) => {
-          if (status === "SUBSCRIBED") {
-            console.log(`Subscribed to place:${placeId} realtime`);
-          } else if (
-            status === "CHANNEL_ERROR" ||
-            status === "TIMED_OUT" ||
-            status === "CLOSED"
-          ) {
-            console.warn(`Channel ${status}, attempting reconnect in 3s...`);
-            if (isMounted) {
-              reconnectTimeout = setTimeout(setupChannel, 3000);
-            }
-          }
-        });
-
-      channelRef.current = channel;
-    };
-
-    // Handle visibility changes (mobile background/foreground)
-    const handleVisibilityChange = () => {
-      if (document.visibilityState === "visible" && isMounted) {
-        fetchMessages(); // Refresh messages on return
-        setupChannel(); // Reconnect realtime
-      }
-    };
-
     fetchMessages();
-    setupChannel();
-    document.addEventListener("visibilitychange", handleVisibilityChange);
+    // Mark as read when viewing
+    fetch(`/api/places/${placeId}/read`, { method: "POST" });
+    markThreadRead(placeId);
 
-    return () => {
-      isMounted = false;
-      document.removeEventListener("visibilitychange", handleVisibilityChange);
-      if (reconnectTimeout) clearTimeout(reconnectTimeout);
-      if (channelRef.current) {
-        supabase.removeChannel(channelRef.current);
-        channelRef.current = null;
-      }
-    };
-  }, [placeId, fetchMessages]);
+    // No per-route Realtime subscription - useRealtimeSync handles it globally
+  }, [placeId, fetchMessages, markThreadRead]);
 
   return { messages, loading, sendMessage };
 }

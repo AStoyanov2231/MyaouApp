@@ -9,6 +9,8 @@ const supabase = createClient();
 
 // Throttle visibility change refetches to once per 30 seconds
 const VISIBILITY_THROTTLE_MS = 30000;
+// Debounce refetchThreads to prevent excessive API calls
+const REFETCH_DEBOUNCE_MS = 500;
 
 export function useRealtimeSync() {
   const isPreloading = useIsPreloading();
@@ -22,8 +24,9 @@ export function useRealtimeSync() {
   const channelsRef = useRef<ReturnType<typeof supabase.channel>[]>([]);
   const lastVisibilityFetchRef = useRef<number>(0);
   const isSetupRef = useRef<boolean>(false);
+  const refetchDebounceRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Refetch threads and unread count
+  // Refetch threads and unread count (debounced)
   const refetchThreads = useCallback(async () => {
     try {
       const res = await fetch("/api/dm/threads");
@@ -36,6 +39,16 @@ export function useRealtimeSync() {
       console.error("Failed to refetch threads:", error);
     }
   }, [setThreads, updateTotalUnread]);
+
+  // Debounced version to prevent rapid successive calls
+  const debouncedRefetchThreads = useCallback(() => {
+    if (refetchDebounceRef.current) {
+      clearTimeout(refetchDebounceRef.current);
+    }
+    refetchDebounceRef.current = setTimeout(() => {
+      refetchThreads();
+    }, REFETCH_DEBOUNCE_MS);
+  }, [refetchThreads]);
 
   // Refetch friends data
   const refetchFriends = useCallback(async () => {
@@ -91,8 +104,8 @@ export function useRealtimeSync() {
           if (!isMounted) return;
           const msg = payload.new as DMMessage;
           addMessage(msg.thread_id, msg);
-          // Refetch to update unread counts and thread order
-          refetchThreads();
+          // Debounced refetch to update unread counts and thread order
+          debouncedRefetchThreads();
         }
       )
       .subscribe();
@@ -111,8 +124,8 @@ export function useRealtimeSync() {
           if (!isMounted) return;
           const msg = payload.new as Message;
           addMessage(msg.place_id, msg);
-          // Refetch to update unread counts
-          refetchThreads();
+          // Debounced refetch to update unread counts
+          debouncedRefetchThreads();
         }
       )
       .subscribe();
@@ -180,10 +193,14 @@ export function useRealtimeSync() {
       isMounted = false;
       isSetupRef.current = false;
       document.removeEventListener("visibilitychange", handleVisibilityChange);
+      // Clean up debounce timeout
+      if (refetchDebounceRef.current) {
+        clearTimeout(refetchDebounceRef.current);
+      }
       channelsRef.current.forEach((channel) => {
         supabase.removeChannel(channel);
       });
       channelsRef.current = [];
     };
-  }, [isPreloading, addMessage, refetchThreads, refetchFriends]);
+  }, [isPreloading, addMessage, debouncedRefetchThreads, refetchFriends]);
 }

@@ -8,11 +8,10 @@ import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/useAuth";
-import { createClient } from "@/lib/supabase/client";
+import { useAppStore } from "@/stores/appStore";
+import { useThreadMessages } from "@/stores/selectors";
 import type { DMThread, DMMessage, Profile } from "@/types/database";
 import { formatDistanceToNow } from "date-fns";
-
-const supabase = createClient();
 
 function getInitials(name: string) {
   return name.slice(0, 2).toUpperCase();
@@ -27,68 +26,53 @@ export default function DMConversationPage({ params }: { params: Promise<{ threa
   const { threadId } = use(params);
   const { user } = useAuth();
   const [thread, setThread] = useState<ThreadWithParticipants | null>(null);
-  const [messages, setMessages] = useState<DMMessage[]>([]);
   const [loading, setLoading] = useState(true);
   const [input, setInput] = useState("");
   const [sending, setSending] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
+
+  // Read messages from store (updated by global useRealtimeSync)
+  const storeMessages = useThreadMessages(threadId);
+  const setThreadMessages = useAppStore((s) => s.setThreadMessages);
+  const markThreadRead = useAppStore((s) => s.markThreadRead);
+
+  // Use store messages if available, otherwise local fetch
+  const [localMessages, setLocalMessages] = useState<DMMessage[]>([]);
+  const messages = storeMessages.length > 0 ? (storeMessages as DMMessage[]) : localMessages;
 
   useEffect(() => {
     let isMounted = true;
 
     fetch(`/api/dm/${threadId}`)
-      .then((r) => r.json())
+      .then((r) => {
+        if (!r.ok) throw new Error("Failed to load thread");
+        return r.json();
+      })
       .then((d) => {
         if (isMounted) {
           setThread(d.thread);
-          setMessages(d.messages || []);
+          const msgs = d.messages || [];
+          setLocalMessages(msgs);
+          // Also update store so global sync can add to it
+          setThreadMessages(threadId, msgs);
           setLoading(false);
         }
+      })
+      .catch((err) => {
+        console.error("Failed to load thread:", err);
+        if (isMounted) setLoading(false);
       });
 
     // Mark messages as read when viewing thread
     fetch(`/api/dm/${threadId}/read`, { method: "POST" });
+    markThreadRead(threadId);
 
-    // Clean up existing channel
-    if (channelRef.current) {
-      supabase.removeChannel(channelRef.current);
-    }
-
-    const channel = supabase
-      .channel(`dm:${threadId}:${Date.now()}`)
-      .on(
-        "postgres_changes",
-        {
-          event: "INSERT",
-          schema: "public",
-          table: "dm_messages",
-          filter: `thread_id=eq.${threadId}`,
-        },
-        async () => {
-          if (!isMounted) return;
-          const res = await fetch(`/api/dm/${threadId}`);
-          const d = await res.json();
-          if (isMounted) setMessages(d.messages || []);
-          fetch(`/api/dm/${threadId}/read`, { method: "POST" });
-        }
-      )
-      .subscribe((status) => {
-        if (status === "SUBSCRIBED") {
-          console.log(`Subscribed to dm:${threadId} realtime`);
-        }
-      });
-
-    channelRef.current = channel;
+    // No per-route Realtime subscription needed - useRealtimeSync handles it globally
 
     return () => {
       isMounted = false;
-      if (channelRef.current) {
-        supabase.removeChannel(channelRef.current);
-        channelRef.current = null;
-      }
     };
-  }, [threadId]);
+  }, [threadId, setThreadMessages, markThreadRead]);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -103,8 +87,13 @@ export default function DMConversationPage({ params }: { params: Promise<{ threa
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ content: input.trim() }),
     });
+    if (!res.ok) {
+      console.error("Failed to send message");
+      setSending(false);
+      return;
+    }
     const { message } = await res.json();
-    if (message) setMessages((prev) => prev.some(m => m.id === message.id) ? prev : [...prev, message]);
+    if (message) setLocalMessages((prev) => prev.some(m => m.id === message.id) ? prev : [...prev, message]);
     setInput("");
     setSending(false);
   };
