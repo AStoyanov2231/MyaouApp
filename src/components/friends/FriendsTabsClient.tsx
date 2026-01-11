@@ -1,14 +1,14 @@
 "use client";
 
 import { useState, useOptimistic, useTransition, useEffect } from "react";
-import { Check, X, MessageCircle, Loader2 } from "lucide-react";
+import { Check, X, MessageCircle, UserMinus, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Card } from "@/components/ui/card";
 import Link from "next/link";
 import type { Profile, Friendship } from "@/types/database";
-import { useAppStore } from "@/stores/appStore";
+import { useAppStore, type FriendWithFriendshipId } from "@/stores/appStore";
 import { useFriends, useFriendRequests, useIsFriendsLoaded } from "@/stores/selectors";
 
 function getInitials(name: string | null | undefined): string {
@@ -17,7 +17,7 @@ function getInitials(name: string | null | undefined): string {
 }
 
 interface FriendsTabsClientProps {
-  initialFriends: Profile[];
+  initialFriends: FriendWithFriendshipId[];
   initialRequests: (Friendship & { requester: Profile })[];
 }
 
@@ -29,6 +29,7 @@ export function FriendsTabsClient({ initialFriends, initialRequests }: FriendsTa
   const setFriends = useAppStore((s) => s.setFriends);
   const setRequests = useAppStore((s) => s.setRequests);
   const addFriend = useAppStore((s) => s.addFriend);
+  const removeFriend = useAppStore((s) => s.removeFriend);
   const removeRequest = useAppStore((s) => s.removeRequest);
 
   // Use store data if loaded, otherwise fall back to SSR props
@@ -54,9 +55,15 @@ export function FriendsTabsClient({ initialFriends, initialRequests }: FriendsTa
     (state, removedId: string) => state.filter((r) => r.id !== removedId)
   );
 
-  const [optimisticFriends, addOptimisticFriend] = useOptimistic(
+  const [optimisticFriends, updateOptimisticFriends] = useOptimistic(
     friends,
-    (state, newFriend: Profile) => [...state, newFriend]
+    (state, action: { type: "add"; friend: FriendWithFriendshipId } | { type: "remove"; friendId: string }) => {
+      if (action.type === "add") {
+        return [...state, action.friend];
+      } else {
+        return state.filter((f) => f.id !== action.friendId);
+      }
+    }
   );
 
   const handleRequest = async (id: string, status: "accepted" | "blocked") => {
@@ -72,9 +79,10 @@ export function FriendsTabsClient({ initialFriends, initialRequests }: FriendsTa
     // Instant UI update - remove from requests
     updateOptimisticRequests(id);
 
-    // If accepting, instantly add to friends list
+    // If accepting, instantly add to friends list (request id becomes friendship_id)
+    const newFriend: FriendWithFriendshipId = { ...req.requester, friendship_id: id };
     if (status === "accepted") {
-      addOptimisticFriend(req.requester);
+      updateOptimisticFriends({ type: "add", friend: newFriend });
     }
 
     startTransition(async () => {
@@ -92,7 +100,7 @@ export function FriendsTabsClient({ initialFriends, initialRequests }: FriendsTa
         // Update store on success
         removeRequest(id);
         if (status === "accepted") {
-          addFriend(req.requester);
+          addFriend(newFriend);
         }
       } catch (error) {
         // Optimistic state will revert since we didn't update backing state
@@ -101,6 +109,40 @@ export function FriendsTabsClient({ initialFriends, initialRequests }: FriendsTa
         setProcessingIds((prev) => {
           const next = new Set(prev);
           next.delete(id);
+          return next;
+        });
+      }
+    });
+  };
+
+  const handleUnfriend = async (friendshipId: string, friendId: string) => {
+    // Prevent double-click
+    if (processingIds.has(friendshipId)) return;
+
+    // Mark as processing
+    setProcessingIds((prev) => new Set(prev).add(friendshipId));
+
+    // Instant UI update - remove from friends list
+    updateOptimisticFriends({ type: "remove", friendId });
+
+    startTransition(async () => {
+      try {
+        const res = await fetch(`/api/friends/${friendshipId}`, {
+          method: "DELETE",
+        });
+
+        if (!res.ok) {
+          throw new Error("Failed to unfriend");
+        }
+
+        // Update store on success
+        removeFriend(friendId);
+      } catch (error) {
+        console.error("Failed to unfriend:", error);
+      } finally {
+        setProcessingIds((prev) => {
+          const next = new Set(prev);
+          next.delete(friendshipId);
           return next;
         });
       }
@@ -133,11 +175,26 @@ export function FriendsTabsClient({ initialFriends, initialRequests }: FriendsTa
                   <p className="font-medium">{friend.display_name || friend.username}</p>
                   <p className="text-sm text-muted-foreground">@{friend.username}</p>
                 </div>
-                <Link href={`/messages?user=${friend.id}`}>
-                  <Button variant="ghost" size="sm">
-                    <MessageCircle className="h-5 w-5" />
+                <div className="flex gap-1">
+                  <Link href={`/messages?user=${friend.id}`}>
+                    <Button variant="ghost" size="sm">
+                      <MessageCircle className="h-5 w-5" />
+                    </Button>
+                  </Link>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => handleUnfriend(friend.friendship_id, friend.id)}
+                    disabled={processingIds.has(friend.friendship_id)}
+                    className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                  >
+                    {processingIds.has(friend.friendship_id) ? (
+                      <Loader2 className="h-5 w-5 animate-spin" />
+                    ) : (
+                      <UserMinus className="h-5 w-5" />
+                    )}
                   </Button>
-                </Link>
+                </div>
               </Card>
             ))
           )}

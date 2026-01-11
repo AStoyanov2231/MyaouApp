@@ -15,9 +15,11 @@ export async function GET() {
     .or(`requester_id.eq.${user.id},addressee_id.eq.${user.id}`)
     .eq("status", "accepted");
 
-  const friends = friendships?.map((f) =>
-    f.requester_id === user.id ? f.addressee : f.requester
-  );
+  // Include friendship_id with each friend for unfriend functionality
+  const friends = friendships?.map((f) => ({
+    ...(f.requester_id === user.id ? f.addressee : f.requester),
+    friendship_id: f.id,
+  }));
 
   return NextResponse.json({ friends: friends || [] });
 }

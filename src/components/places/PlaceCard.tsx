@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 
 import { Card } from "@/components/ui/card";
 
-import { MapPin, Users, MessageSquare, Loader2 } from "lucide-react";
+import { MapPin, Users, Loader2 } from "lucide-react";
 
 import { Place } from "@/types/database";
 
@@ -65,10 +65,6 @@ export function PlaceCard({ place }: PlaceCardProps) {
         <span className="flex items-center gap-1">
           <Users className="h-4 w-4" />
           {place.member_count}
-        </span>
-        <span className="flex items-center gap-1">
-          <MessageSquare className="h-4 w-4" />
-          {place.message_count}
         </span>
         {place.rating && (
           <span className="text-yellow-500">★ {place.rating.toFixed(1)}</span>

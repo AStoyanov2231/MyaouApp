@@ -38,6 +38,11 @@ export type FriendshipWithRequester = Friendship & {
   requester: Profile;
 };
 
+// Friend profile with friendship_id for unfriend functionality
+export type FriendWithFriendshipId = Profile & {
+  friendship_id: string;
+};
+
 // Preload API response type
 export type PreloadResponse = {
   profile: {
@@ -48,7 +53,7 @@ export type PreloadResponse = {
     stats: ProfileStats;
   };
   friends: {
-    friends: Profile[];
+    friends: FriendWithFriendshipId[];
     requests: FriendshipWithRequester[];
   };
   messages: {
@@ -68,7 +73,7 @@ interface AppState {
   stats: ProfileStats;
 
   // Friends data
-  friends: Profile[];
+  friends: FriendWithFriendshipId[];
   requests: FriendshipWithRequester[];
 
   // Messages data
@@ -97,9 +102,9 @@ interface AppState {
   updateStats: (stats: Partial<ProfileStats>) => void;
 
   // Friends actions
-  setFriends: (friends: Profile[]) => void;
+  setFriends: (friends: FriendWithFriendshipId[]) => void;
   setRequests: (requests: FriendshipWithRequester[]) => void;
-  addFriend: (friend: Profile) => void;
+  addFriend: (friend: FriendWithFriendshipId) => void;
   removeFriend: (friendId: string) => void;
   removeRequest: (requestId: string) => void;
 

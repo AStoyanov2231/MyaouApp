@@ -88,8 +88,9 @@ export async function GET(request: NextRequest) {
     const place = await googleResponse.json();
 
     // Transform Google response to our schema (without saving to DB)
+    // If place exists in DB, use its member_count; otherwise 0
     const placeData = {
-      id: place.id, // Use google_place_id as temporary ID
+      id: cachedPlace?.id || place.id, // Use DB id if exists, otherwise google_place_id
       google_place_id: place.id,
       name: place.displayName?.text || "Unknown",
       formatted_address: place.formattedAddress,
@@ -99,9 +100,9 @@ export async function GET(request: NextRequest) {
       photo_reference: place.photos?.[0]?.name,
       rating: place.rating,
       user_ratings_total: place.userRatingCount,
-      member_count: 0,
-      message_count: 0,
-      is_active: false,
+      member_count: cachedPlace?.member_count ?? 0,
+      message_count: cachedPlace?.message_count ?? 0,
+      is_active: cachedPlace?.is_active ?? false,
     };
 
     return NextResponse.json({

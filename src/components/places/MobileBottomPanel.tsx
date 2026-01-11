@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 
-import { X, MapPin, Users, MessageSquare, Loader2, AlertCircle } from "lucide-react";
+import { X, MapPin, Users, Loader2, AlertCircle } from "lucide-react";
 
 import { Place } from "@/types/database";
 
@@ -92,10 +92,6 @@ export function MobileBottomPanel({ place, onClose }: MobileBottomPanelProps) {
                   <Users className="h-3 w-3 text-white" />
                   <span className="text-white font-semibold text-xs">{place.member_count}</span>
                 </Badge>
-                <Badge variant="secondary" className="backdrop-blur-xl bg-white/20 border border-white/30 px-2 py-1 flex items-center gap-1.5 shadow-lg">
-                  <MessageSquare className="h-3 w-3 text-white" />
-                  <span className="text-white font-semibold text-xs">{place.message_count}</span>
-                </Badge>
                 {place.rating && (
                   <Badge variant="secondary" className="backdrop-blur-xl bg-white/20 border border-white/30 px-2 py-1 flex items-center gap-1 shadow-lg">
                     <span className="text-yellow-300 text-xs">★</span>
@@ -129,10 +125,6 @@ export function MobileBottomPanel({ place, onClose }: MobileBottomPanelProps) {
                 <Badge variant="secondary" className="bg-primary/10 border-primary/20 px-3 py-1.5 flex items-center gap-1.5">
                   <Users className="h-3.5 w-3.5 text-primary" />
                   <span className="font-semibold text-sm">{place.member_count}</span>
-                </Badge>
-                <Badge variant="secondary" className="bg-accent/10 border-accent/20 px-3 py-1.5 flex items-center gap-1.5">
-                  <MessageSquare className="h-3.5 w-3.5 text-accent" />
-                  <span className="font-semibold text-sm">{place.message_count}</span>
                 </Badge>
                 {place.rating && (
                   <Badge variant="secondary" className="bg-yellow-400/10 border-yellow-400/20 px-3 py-1.5 flex items-center gap-1">

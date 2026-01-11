@@ -19,10 +19,11 @@ async function getFriendsData(userId: string) {
       .eq("status", "pending"),
   ]);
 
-  // Extract friend profiles (the other person in each friendship)
-  const friends = (friendsResult.data || []).map((f) =>
-    f.requester_id === userId ? f.addressee : f.requester
-  );
+  // Extract friend profiles with friendship_id for unfriend functionality
+  const friends = (friendsResult.data || []).map((f) => ({
+    ...(f.requester_id === userId ? f.addressee : f.requester),
+    friendship_id: f.id,
+  }));
 
   return { friends, requests: requestsResult.data || [] };
 }

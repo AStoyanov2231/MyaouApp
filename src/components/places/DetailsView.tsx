@@ -8,7 +8,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 
-import { ArrowLeft, MapPin, Users, MessageSquare, Loader2, AlertCircle } from "lucide-react";
+import { ArrowLeft, MapPin, Users, Loader2, AlertCircle } from "lucide-react";
 
 import { Place } from "@/types/database";
 
@@ -93,10 +93,6 @@ export function DetailsView({ place, onBack }: DetailsViewProps) {
                 <Users className="h-4 w-4 text-white" />
                 <span className="text-white font-bold text-sm">{place.member_count}</span>
               </Badge>
-              <Badge variant="secondary" className="backdrop-blur-xl bg-white/20 border border-white/30 px-3 py-2 flex items-center gap-2 shadow-lg">
-                <MessageSquare className="h-4 w-4 text-white" />
-                <span className="text-white font-bold text-sm">{place.message_count}</span>
-              </Badge>
               {place.rating && (
                 <Badge variant="secondary" className="backdrop-blur-xl bg-white/20 border border-white/30 px-3 py-2 flex items-center gap-1.5 shadow-lg">
                   <span className="text-yellow-300 text-sm">★</span>
@@ -123,16 +119,11 @@ export function DetailsView({ place, onBack }: DetailsViewProps) {
 
           {/* Stats cards for no-photo scenario */}
           {!place.cached_photo_url && (
-            <div className="grid grid-cols-3 gap-2">
+            <div className="grid grid-cols-2 gap-2">
               <div className="gradient-brand-subtle rounded-xl p-3 text-center border border-primary/20">
                 <Users className="h-5 w-5 text-primary mx-auto mb-1" />
                 <p className="text-xs text-muted-foreground font-medium">Members</p>
                 <p className="text-lg font-bold text-foreground">{place.member_count}</p>
-              </div>
-              <div className="bg-gradient-to-br from-accent/10 to-primary/10 rounded-xl p-3 text-center border border-accent/20">
-                <MessageSquare className="h-5 w-5 text-accent mx-auto mb-1" />
-                <p className="text-xs text-muted-foreground font-medium">Messages</p>
-                <p className="text-lg font-bold text-foreground">{place.message_count}</p>
               </div>
               {place.rating && (
                 <div className="bg-gradient-to-br from-yellow-400/10 to-orange-400/10 rounded-xl p-3 text-center border border-yellow-400/20">
