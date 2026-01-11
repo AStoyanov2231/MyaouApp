@@ -325,6 +325,20 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
+-- Helper function to check place membership (SECURITY DEFINER bypasses RLS to avoid recursion)
+CREATE OR REPLACE FUNCTION is_place_member(p_place_id UUID, p_user_id UUID)
+RETURNS BOOLEAN
+SECURITY DEFINER
+SET search_path = public
+AS $$
+BEGIN
+  RETURN EXISTS (
+    SELECT 1 FROM place_members
+    WHERE place_id = p_place_id AND user_id = p_user_id
+  );
+END;
+$$ LANGUAGE plpgsql;
+
 -- RLS Policies
 ALTER TABLE profiles ENABLE ROW LEVEL SECURITY;
 ALTER TABLE places ENABLE ROW LEVEL SECURITY;
@@ -344,18 +358,18 @@ CREATE POLICY "Users can insert own profile" ON profiles FOR INSERT WITH CHECK (
 -- Places: authenticated read
 CREATE POLICY "Places are viewable by authenticated users" ON places FOR SELECT TO authenticated USING (true);
 
--- Place members (consolidated SELECT policy to avoid multiple permissive policies)
+-- Place members (uses helper function to avoid RLS recursion)
 CREATE POLICY "Users can view place members" ON place_members FOR SELECT TO authenticated
-USING (user_id = (select auth.uid()) OR EXISTS (SELECT 1 FROM place_members pm WHERE pm.place_id = place_members.place_id AND pm.user_id = (select auth.uid())));
+USING (user_id = (select auth.uid()) OR is_place_member(place_id, (select auth.uid())));
 CREATE POLICY "Users can join places" ON place_members FOR INSERT TO authenticated WITH CHECK (user_id = (select auth.uid()));
 CREATE POLICY "Users can leave places" ON place_members FOR DELETE TO authenticated USING (user_id = (select auth.uid()));
 CREATE POLICY "Users can update own membership" ON place_members FOR UPDATE TO authenticated USING (user_id = (select auth.uid()));
 
--- Messages
+-- Messages (uses helper function for membership check)
 CREATE POLICY "Members can view place messages" ON messages FOR SELECT TO authenticated
-USING (EXISTS (SELECT 1 FROM place_members WHERE place_id = messages.place_id AND user_id = (select auth.uid())));
+USING (is_place_member(place_id, (select auth.uid())));
 CREATE POLICY "Members can send messages" ON messages FOR INSERT TO authenticated
-WITH CHECK (sender_id = (select auth.uid()) AND EXISTS (SELECT 1 FROM place_members WHERE place_id = messages.place_id AND user_id = (select auth.uid())));
+WITH CHECK (sender_id = (select auth.uid()) AND is_place_member(place_id, (select auth.uid())));
 CREATE POLICY "Users can edit own messages" ON messages FOR UPDATE TO authenticated USING (sender_id = (select auth.uid()));
 CREATE POLICY "Users can delete own messages" ON messages FOR DELETE TO authenticated USING (sender_id = (select auth.uid()));
 

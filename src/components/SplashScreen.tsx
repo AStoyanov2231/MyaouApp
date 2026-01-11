@@ -60,7 +60,6 @@ export function SplashScreen() {
                 style={{ animationDelay: "300ms" }}
               />
             </div>
-            <p className="text-muted-foreground text-sm">Loading your data...</p>
           </div>
         )}
       </div>
