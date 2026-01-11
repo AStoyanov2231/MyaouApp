@@ -35,7 +35,8 @@
       "Skill(skill-creator)",
       "Skill(code-review-skill)",
       "Bash(find:*)",
-      "mcp__supabase__list_migrations"
+      "mcp__supabase__list_migrations",
+      "mcp__plugin_supabase_supabase__list_projects"
     ]
   }
 }
