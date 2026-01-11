@@ -15,6 +15,7 @@ const REFETCH_DEBOUNCE_MS = 500;
 export function useRealtimeSync() {
   const isPreloading = useIsPreloading();
   const addMessage = useAppStore((state) => state.addMessage);
+  const updateMessage = useAppStore((state) => state.updateMessage);
   const setFriends = useAppStore((state) => state.setFriends);
   const setRequests = useAppStore((state) => state.setRequests);
   const updateTotalUnread = useAppStore((state) => state.updateTotalUnread);
@@ -90,7 +91,7 @@ export function useRealtimeSync() {
     });
     channelsRef.current = [];
 
-    // Channel for DM messages - update store on new messages
+    // Channel for DM messages - handle INSERT and UPDATE events
     const dmMessagesChannel = supabase
       .channel("global-dm-messages")
       .on(
@@ -106,6 +107,20 @@ export function useRealtimeSync() {
           addMessage(msg.thread_id, msg);
           // Debounced refetch to update unread counts and thread order
           debouncedRefetchThreads();
+        }
+      )
+      .on(
+        "postgres_changes",
+        {
+          event: "UPDATE",
+          schema: "public",
+          table: "dm_messages",
+        },
+        (payload) => {
+          if (!isMounted) return;
+          const msg = payload.new as DMMessage;
+          // Update the message in store (handles edit and soft delete)
+          updateMessage(msg.thread_id, msg.id, msg);
         }
       )
       .subscribe();
@@ -202,5 +217,5 @@ export function useRealtimeSync() {
       });
       channelsRef.current = [];
     };
-  }, [isPreloading, addMessage, debouncedRefetchThreads, refetchFriends]);
+  }, [isPreloading, addMessage, updateMessage, debouncedRefetchThreads, refetchFriends]);
 }

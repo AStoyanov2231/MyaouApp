@@ -9,7 +9,7 @@ import { Card } from "@/components/ui/card";
 import Link from "next/link";
 import type { Profile, Friendship } from "@/types/database";
 import { useAppStore, type FriendWithFriendshipId } from "@/stores/appStore";
-import { useFriends, useFriendRequests, useIsFriendsLoaded } from "@/stores/selectors";
+import { useFriends, useFriendRequests, useIsFriendsLoaded, useOnlineUsers } from "@/stores/selectors";
 
 function getInitials(name: string | null | undefined): string {
   if (!name || name.length === 0) return "??";
@@ -26,6 +26,7 @@ export function FriendsTabsClient({ initialFriends, initialRequests }: FriendsTa
   const storeFriends = useFriends();
   const storeRequests = useFriendRequests();
   const isFriendsLoaded = useIsFriendsLoaded();
+  const onlineUsers = useOnlineUsers();
   const setFriends = useAppStore((s) => s.setFriends);
   const setRequests = useAppStore((s) => s.setRequests);
   const addFriend = useAppStore((s) => s.addFriend);
@@ -161,19 +162,26 @@ export function FriendsTabsClient({ initialFriends, initialRequests }: FriendsTa
           {optimisticFriends.length === 0 ? (
             <p className="text-muted-foreground text-center py-8">No friends yet</p>
           ) : (
-            optimisticFriends.map((friend) => (
+            optimisticFriends.map((friend) => {
+              const isOnline = onlineUsers.has(friend.id);
+              return (
               <Card key={friend.id} className="p-4 flex items-center gap-3">
-                <Link href={`/profile/${friend.id}`}>
+                <Link href={`/profile/${friend.id}`} className="relative">
                   <Avatar className="h-10 w-10">
                     <AvatarImage src={friend.avatar_url || undefined} alt={friend.display_name || friend.username} />
                     <AvatarFallback className="bg-primary text-primary-foreground">
                       {getInitials(friend.display_name || friend.username)}
                     </AvatarFallback>
                   </Avatar>
+                  {isOnline && (
+                    <div className="absolute bottom-0 right-0 h-3 w-3 bg-green-500 rounded-full border-2 border-card" />
+                  )}
                 </Link>
                 <div className="flex-1">
                   <p className="font-medium">{friend.display_name || friend.username}</p>
-                  <p className="text-sm text-muted-foreground">@{friend.username}</p>
+                  <p className="text-sm text-muted-foreground">
+                    {isOnline ? <span className="text-green-500">Online</span> : `@${friend.username}`}
+                  </p>
                 </div>
                 <div className="flex gap-1">
                   <Link href={`/messages?user=${friend.id}`}>
@@ -196,7 +204,8 @@ export function FriendsTabsClient({ initialFriends, initialRequests }: FriendsTa
                   </Button>
                 </div>
               </Card>
-            ))
+              );
+            })
           )}
         </div>
       </TabsContent>

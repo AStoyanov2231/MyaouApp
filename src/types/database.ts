@@ -96,6 +96,7 @@ export type DMMessage = {
   media_url: string | null;
   media_thumbnail_url: string | null;
   is_read: boolean;
+  is_edited: boolean;
   is_deleted: boolean;
   created_at: string;
   sender?: Profile;

@@ -30,6 +30,9 @@ export const useThreadMessages = (threadId: string) =>
 export const useIsPreloading = () => useAppStore((state) => state.isPreloading);
 export const usePreloadError = () => useAppStore((state) => state.preloadError);
 
+// Presence selectors
+export const useOnlineUsers = () => useAppStore((state) => state.onlineUsers);
+
 // Check if all data is loaded
 export const useIsFullyLoaded = () =>
   useAppStore(

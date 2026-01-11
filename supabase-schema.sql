@@ -140,6 +140,7 @@ CREATE TABLE dm_messages (
     media_url TEXT,
     media_thumbnail_url TEXT,
     is_read BOOLEAN DEFAULT FALSE,
+    is_edited BOOLEAN DEFAULT FALSE,
     is_deleted BOOLEAN DEFAULT FALSE,
     created_at TIMESTAMPTZ DEFAULT NOW()
 );

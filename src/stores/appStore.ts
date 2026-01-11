@@ -112,9 +112,14 @@ interface AppState {
   setThreads: (threads: Thread[]) => void;
   setThreadMessages: (threadId: string, messages: (DMMessage | Message)[]) => void;
   addMessage: (threadId: string, message: DMMessage | Message) => void;
+  updateMessage: (threadId: string, messageId: string, updates: Partial<DMMessage | Message>) => void;
   updateTotalUnread: (count: number) => void;
   markThreadRead: (threadId: string) => void;
   setCurrentPlace: (place: (Place & { membership_id: string }) | null) => void;
+
+  // Presence actions
+  onlineUsers: Set<string>;
+  setOnlineUsers: (userIds: string[]) => void;
 }
 
 const initialStats: ProfileStats = {
@@ -136,6 +141,7 @@ export const useAppStore = create<AppState>((set, get) => ({
   threadMessages: {},
   totalUnread: 0,
   currentPlace: null,
+  onlineUsers: new Set<string>(),
   isPreloading: false,
   preloadError: null,
   isProfileLoaded: false,
@@ -208,6 +214,7 @@ export const useAppStore = create<AppState>((set, get) => ({
       threadMessages: {},
       totalUnread: 0,
       currentPlace: null,
+      onlineUsers: new Set<string>(),
       isPreloading: false,
       preloadError: null,
       isProfileLoaded: false,
@@ -263,6 +270,19 @@ export const useAppStore = create<AppState>((set, get) => ({
         },
       };
     }),
+  updateMessage: (threadId, messageId, updates) =>
+    set((state) => {
+      const existing = state.threadMessages[threadId];
+      if (!existing) return state;
+      return {
+        threadMessages: {
+          ...state.threadMessages,
+          [threadId]: existing.map((m) =>
+            m.id === messageId ? { ...m, ...updates } : m
+          ),
+        },
+      };
+    }),
   updateTotalUnread: (count) => set({ totalUnread: count }),
   markThreadRead: (threadId) =>
     set((state) => {
@@ -276,4 +296,7 @@ export const useAppStore = create<AppState>((set, get) => ({
       };
     }),
   setCurrentPlace: (place) => set({ currentPlace: place }),
+
+  // Presence actions
+  setOnlineUsers: (userIds) => set({ onlineUsers: new Set(userIds) }),
 }));

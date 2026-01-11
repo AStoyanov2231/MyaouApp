@@ -1,6 +1,6 @@
 "use client";
 import { useEffect, useState, useRef, use } from "react";
-import { ArrowLeft, Send, Loader2 } from "lucide-react";
+import { ArrowLeft, Send, Loader2, MoreVertical, Pencil, Trash2, X, Check } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -8,10 +8,13 @@ import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/useAuth";
+import { useIsUserOnline } from "@/hooks/usePresence";
 import { useAppStore } from "@/stores/appStore";
 import { useThreadMessages } from "@/stores/selectors";
 import type { DMThread, DMMessage, Profile } from "@/types/database";
-import { formatDistanceToNow } from "date-fns";
+import { formatDistanceToNow, differenceInMinutes } from "date-fns";
+
+const EDIT_WINDOW_MINUTES = 15;
 
 function getInitials(name: string) {
   return name.slice(0, 2).toUpperCase();
@@ -29,6 +32,9 @@ export default function DMConversationPage({ params }: { params: Promise<{ threa
   const [loading, setLoading] = useState(true);
   const [input, setInput] = useState("");
   const [sending, setSending] = useState(false);
+  const [editingMessageId, setEditingMessageId] = useState<string | null>(null);
+  const [editContent, setEditContent] = useState("");
+  const [menuOpenId, setMenuOpenId] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   // Read messages from store (updated by global useRealtimeSync)
@@ -39,6 +45,12 @@ export default function DMConversationPage({ params }: { params: Promise<{ threa
   // Use store messages if available, otherwise local fetch
   const [localMessages, setLocalMessages] = useState<DMMessage[]>([]);
   const messages = storeMessages.length > 0 ? (storeMessages as DMMessage[]) : localMessages;
+
+  // Compute other participant's ID for presence check (hook must be called unconditionally)
+  const otherParticipantId = thread
+    ? (thread.participant_1_id === user?.id ? thread.participant_2_id : thread.participant_1_id)
+    : undefined;
+  const isOtherOnline = useIsUserOnline(otherParticipantId);
 
   useEffect(() => {
     let isMounted = true;
@@ -98,6 +110,57 @@ export default function DMConversationPage({ params }: { params: Promise<{ threa
     setSending(false);
   };
 
+  const canEditMessage = (msg: DMMessage) => {
+    if (msg.sender_id !== user?.id || msg.is_deleted) return false;
+    const minutesSince = differenceInMinutes(new Date(), new Date(msg.created_at));
+    return minutesSince <= EDIT_WINDOW_MINUTES;
+  };
+
+  const handleStartEdit = (msg: DMMessage) => {
+    setEditingMessageId(msg.id);
+    setEditContent(msg.content || "");
+    setMenuOpenId(null);
+  };
+
+  const handleCancelEdit = () => {
+    setEditingMessageId(null);
+    setEditContent("");
+  };
+
+  const handleSaveEdit = async (messageId: string) => {
+    if (!editContent.trim()) return;
+    try {
+      const res = await fetch(`/api/dm/${threadId}/${messageId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ content: editContent.trim() }),
+      });
+      if (!res.ok) {
+        const data = await res.json();
+        console.error("Failed to edit message:", data.error);
+      }
+    } catch (error) {
+      console.error("Failed to edit message:", error);
+    }
+    setEditingMessageId(null);
+    setEditContent("");
+  };
+
+  const handleDelete = async (messageId: string) => {
+    setMenuOpenId(null);
+    try {
+      const res = await fetch(`/api/dm/${threadId}/${messageId}`, {
+        method: "DELETE",
+      });
+      if (!res.ok) {
+        const data = await res.json();
+        console.error("Failed to delete message:", data.error);
+      }
+    } catch (error) {
+      console.error("Failed to delete message:", error);
+    }
+  };
+
   if (loading || !thread) {
     return (
       <div className="flex flex-col h-screen">
@@ -123,49 +186,148 @@ export default function DMConversationPage({ params }: { params: Promise<{ threa
         <Link href="/messages" className="md:hidden">
           <ArrowLeft />
         </Link>
-        <Avatar className="h-8 w-8">
-          <AvatarImage src={other.avatar_url || undefined} alt={other.display_name || other.username} />
-          <AvatarFallback className="bg-primary text-primary-foreground text-sm">
-            {getInitials(other.display_name || other.username)}
-          </AvatarFallback>
-        </Avatar>
+        <div className="relative">
+          <Avatar className="h-8 w-8">
+            <AvatarImage src={other.avatar_url || undefined} alt={other.display_name || other.username} />
+            <AvatarFallback className="bg-primary text-primary-foreground text-sm">
+              {getInitials(other.display_name || other.username)}
+            </AvatarFallback>
+          </Avatar>
+          {isOtherOnline && (
+            <div className="absolute bottom-0 right-0 h-3 w-3 bg-green-500 rounded-full border-2 border-card" />
+          )}
+        </div>
         <div>
           <h1 className="font-semibold">{other.display_name || other.username}</h1>
-          <p className="text-sm text-muted-foreground">@{other.username}</p>
+          <p className="text-sm text-muted-foreground">
+            {isOtherOnline ? (
+              <span className="text-green-500">Online</span>
+            ) : (
+              `@${other.username}`
+            )}
+          </p>
         </div>
       </header>
 
       <div className="flex-1 overflow-y-auto p-4 space-y-4">
-        {messages.map((msg) => (
-          <div
-            key={msg.id}
-            className={cn("flex gap-3", msg.sender_id === user?.id && "flex-row-reverse")}
-          >
-            <Avatar className="h-8 w-8">
-              <AvatarImage src={msg.sender?.avatar_url || undefined} alt={msg.sender?.display_name || msg.sender?.username} />
-              <AvatarFallback className="bg-primary text-primary-foreground text-sm">
-                {getInitials(msg.sender?.display_name || msg.sender?.username || "?")}
-              </AvatarFallback>
-            </Avatar>
+        {messages.map((msg) => {
+          const isOwn = msg.sender_id === user?.id;
+          const isEditing = editingMessageId === msg.id;
+          const showMenu = menuOpenId === msg.id;
+
+          return (
             <div
-              className={cn(
-                "max-w-[70%] p-3 shadow-sm",
-                msg.sender_id === user?.id
-                  ? "bg-primary text-primary-foreground rounded-l-xl rounded-tr-xl"
-                  : "bg-card rounded-r-xl rounded-tl-xl"
-              )}
+              key={msg.id}
+              className={cn("flex gap-3 group", isOwn && "flex-row-reverse")}
             >
-              {msg.media_url && <img src={msg.media_url} alt="" className="rounded mb-2 max-w-full" />}
-              <p>{msg.content}</p>
-              <p className={cn(
-                "text-xs mt-1",
-                msg.sender_id === user?.id ? "text-primary-foreground/70" : "text-muted-foreground"
-              )}>
-                {formatDistanceToNow(new Date(msg.created_at), { addSuffix: true })}
-              </p>
+              <Avatar className="h-8 w-8">
+                <AvatarImage src={msg.sender?.avatar_url || undefined} alt={msg.sender?.display_name || msg.sender?.username} />
+                <AvatarFallback className="bg-primary text-primary-foreground text-sm">
+                  {getInitials(msg.sender?.display_name || msg.sender?.username || "?")}
+                </AvatarFallback>
+              </Avatar>
+
+              <div className={cn("flex items-start gap-1", isOwn && "flex-row-reverse")}>
+                <div
+                  className={cn(
+                    "max-w-[70%] p-3 shadow-sm",
+                    isOwn
+                      ? "bg-primary text-primary-foreground rounded-l-xl rounded-tr-xl"
+                      : "bg-card rounded-r-xl rounded-tl-xl"
+                  )}
+                >
+                  {msg.is_deleted ? (
+                    <p className="italic opacity-60">This message was deleted</p>
+                  ) : isEditing ? (
+                    <div className="flex items-center gap-2">
+                      <Input
+                        value={editContent}
+                        onChange={(e) => setEditContent(e.target.value)}
+                        className="h-8 text-sm bg-background text-foreground"
+                        autoFocus
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter" && !e.shiftKey) {
+                            e.preventDefault();
+                            handleSaveEdit(msg.id);
+                          } else if (e.key === "Escape") {
+                            handleCancelEdit();
+                          }
+                        }}
+                      />
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="h-8 w-8 p-0"
+                        onClick={() => handleSaveEdit(msg.id)}
+                      >
+                        <Check className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="h-8 w-8 p-0"
+                        onClick={handleCancelEdit}
+                      >
+                        <X className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  ) : (
+                    <>
+                      {msg.media_url && <img src={msg.media_url} alt="" className="rounded mb-2 max-w-full" />}
+                      <p>{msg.content}</p>
+                    </>
+                  )}
+                  <p className={cn(
+                    "text-xs mt-1",
+                    isOwn ? "text-primary-foreground/70" : "text-muted-foreground"
+                  )}>
+                    {formatDistanceToNow(new Date(msg.created_at), { addSuffix: true })}
+                    {msg.is_edited && !msg.is_deleted && (
+                      <span className="ml-1">(edited)</span>
+                    )}
+                  </p>
+                </div>
+
+                {/* Action menu for own messages */}
+                {isOwn && !msg.is_deleted && !isEditing && (
+                  <div className="relative">
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      className={cn(
+                        "h-8 w-8 p-0 opacity-0 group-hover:opacity-100 transition-opacity",
+                        showMenu && "opacity-100"
+                      )}
+                      onClick={() => setMenuOpenId(showMenu ? null : msg.id)}
+                    >
+                      <MoreVertical className="h-4 w-4" />
+                    </Button>
+                    {showMenu && (
+                      <div className="absolute top-8 right-0 z-10 bg-card border rounded-lg shadow-lg py-1 min-w-[120px]">
+                        {canEditMessage(msg) && (
+                          <button
+                            className="w-full px-3 py-2 text-sm text-left hover:bg-muted flex items-center gap-2"
+                            onClick={() => handleStartEdit(msg)}
+                          >
+                            <Pencil className="h-4 w-4" />
+                            Edit
+                          </button>
+                        )}
+                        <button
+                          className="w-full px-3 py-2 text-sm text-left hover:bg-muted flex items-center gap-2 text-destructive"
+                          onClick={() => handleDelete(msg.id)}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                          Delete
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
             </div>
-          </div>
-        ))}
+          );
+        })}
         <div ref={messagesEndRef} />
       </div>
 
