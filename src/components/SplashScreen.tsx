@@ -19,7 +19,7 @@ export function SplashScreen() {
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-background flex flex-col items-center justify-center">
+    <div className="fixed inset-0 z-[100] bg-background flex flex-col items-center justify-center">
       <div className="flex flex-col items-center gap-6">
         {/* Logo/Icon */}
         <div className="relative">
