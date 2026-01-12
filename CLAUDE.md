@@ -16,6 +16,7 @@ PlaceChat is a location-based chat application where users discover real-world p
 
 - **Frontend**: Next.js 16+ (App Router), React 19, TypeScript, Tailwind CSS
 - **Backend**: Supabase (PostgreSQL, Auth, Realtime, Storage)
+- **Payments**: Stripe (Checkout, Webhooks, Customer Portal)
 - **Maps**: Leaflet + react-leaflet with OpenStreetMap tiles
 - **UI Components**: shadcn/ui (Radix UI primitives + Tailwind)
 - **Icons**: Lucide React
@@ -72,7 +73,8 @@ src/
 │   └── friends/             # Friend list client components (RSC pattern)
 ├── hooks/                   # Custom React hooks
 ├── lib/                     # Utilities and configurations
-│   └── supabase/            # Supabase client configurations
+│   ├── supabase/            # Supabase client configurations
+│   └── stripe.ts            # Stripe client configuration
 ├── types/                   # TypeScript type definitions
 └── middleware.ts            # Auth middleware for route protection
 ```
@@ -129,6 +131,13 @@ src/
 **Profile** (`/api/profile/`):
 - `GET/PATCH /` - Current user profile
 - `[userId]` - Other user's profile with friendship status
+- `photos/` - Upload profile photos
+- `photos/[photoId]` - PATCH (set avatar, toggle privacy), DELETE photo
+
+**Stripe** (`/api/stripe/`):
+- `checkout` - Create Stripe Checkout session for premium subscription
+- `webhook` - Handle Stripe events (checkout.session.completed, subscription.updated/deleted)
+- `portal` - Create Stripe Customer Portal session for subscription management
 
 **Other**: `/api/upload`, `/api/auth/callback`
 
@@ -146,7 +155,19 @@ src/
 
 ### Database Schema
 
-Core tables: `profiles`, `places`, `place_members`, `messages`, `friendships`, `dm_threads`, `dm_messages`
+Core tables: `profiles`, `places`, `place_members`, `messages`, `friendships`, `dm_threads`, `dm_messages`, `profile_photos`, `subscriptions`
+
+**Premium fields on `profiles`:**
+- `is_premium` - Boolean flag for premium status
+- `premium_until` - Subscription end date
+- `stripe_customer_id` - Stripe customer ID
+- `stripe_subscription_id` - Active subscription ID
+
+**Photo privacy on `profile_photos`:**
+- `is_private` - Private photos only visible to premium users
+- `is_avatar` - Whether photo is user's avatar (avatars cannot be private)
+
+**Subscriptions table:** Tracks Stripe subscription lifecycle (status, period dates, cancellation)
 
 Type definitions in `src/types/database.ts` - keep synchronized with schema changes.
 
@@ -171,6 +192,7 @@ Global state in `src/stores/appStore.ts` using Zustand:
 - `useFriends` / `useFriendRequests` - Get friends/requests
 - `useOnlineUsers` - Get Set of online user IDs
 - `useIsPreloading` - Check loading state
+- `useIsPremium` / `usePremiumUntil` - Premium status from profile
 
 **Pattern to avoid infinite re-renders:**
 Use `useAppStore.getState()` inside useEffect instead of including store actions as dependencies:
@@ -205,6 +227,7 @@ Built on Radix UI primitives with Tailwind styling:
 - `alert.tsx` - Alert boxes with variants
 - `tabs.tsx` - Radix tabbed interface
 - `label.tsx`, `textarea.tsx`, `skeleton.tsx`
+- `premium-badge.tsx` - Crown badge for premium users (gradient styling)
 
 ### Layout Components (`src/components/layout/`)
 
@@ -232,6 +255,16 @@ Built on Radix UI primitives with Tailwind styling:
 **Friends List** (`src/components/friends/FriendsTabsClient.tsx`):
 - Green online indicator dot on avatar for online friends
 - "Online" text label instead of username when online
+- Premium badge displayed next to premium users
+
+### Profile Components (`src/components/profile/`)
+
+- **ProfilePageClient.tsx** - Own profile with editable features
+- **OtherProfileClient.tsx** - Viewing other users' profiles
+- **PremiumSection.tsx** - Upgrade button / subscription management
+- **PhotoGallery.tsx** - Photo grid with privacy toggle (lock icon)
+- **OtherUserGallery.tsx** - Gallery view for other users (respects privacy)
+- **BlurredPhoto.tsx** - Blurred placeholder for private photos (non-premium viewers)
 
 ## Styling
 
@@ -361,6 +394,47 @@ Client-side via `src/lib/image-compression.ts`:
 - `compressImage()`: Max 500KB, 1920px
 - `createThumbnail()`: Max 50KB, 300px
 
+### Premium Subscription Flow
+
+```
+User clicks "Upgrade" → POST /api/stripe/checkout
+→ Creates Stripe Checkout Session → Redirects to Stripe
+→ User pays → Stripe sends webhook to /api/stripe/webhook
+→ Webhook updates DB: is_premium=true, stores subscription_id
+→ User redirected to /profile?payment=success
+```
+
+**Key points:**
+- Payment status determined by webhook, NOT redirect URL (secure)
+- Stripe Customer Portal handles subscription management/cancellation
+- Cancellation: User keeps premium until period ends, then webhook sets is_premium=false
+
+### Photo Privacy System
+
+- Users can mark photos as public or private (lock icon toggle)
+- Private photos only visible to premium users viewing the profile
+- **Server-side filtering**: Non-premium viewers never receive private photo URLs
+- Avatar constraint: Private photos cannot be set as avatar (avatar is always public)
+- Making avatar private automatically clears it from profile
+
+### Browser Back-Forward Cache (bfcache) Pattern
+
+When redirecting to external sites (Stripe), handle page restoration:
+
+```tsx
+useEffect(() => {
+  const handlePageShow = (event: PageTransitionEvent) => {
+    if (event.persisted) {
+      window.location.reload(); // Force fresh data on back navigation
+    }
+  };
+  window.addEventListener("pageshow", handlePageShow);
+  return () => window.removeEventListener("pageshow", handlePageShow);
+}, []);
+```
+
+Used in `ProfilePageClient.tsx` to prevent stale state after Stripe redirect.
+
 ## Leaflet Map Setup
 
 - SSR disabled via Next.js dynamic import
@@ -374,12 +448,27 @@ Client-side via `src/lib/image-compression.ts`:
 
 Required in `.env.local`:
 ```
+# Supabase
 NEXT_PUBLIC_SUPABASE_URL
 NEXT_PUBLIC_SUPABASE_ANON_KEY
 SUPABASE_SERVICE_ROLE_KEY
+
+# Google
 GOOGLE_PLACES_API_KEY
-NEXT_PUBLIC_APP_URL
+
+# Stripe
+STRIPE_SECRET_KEY            # sk_test_... or sk_live_...
+STRIPE_WEBHOOK_SECRET        # whsec_... from Stripe Dashboard
+STRIPE_PREMIUM_PRICE_ID      # price_... from Stripe product
+
+# App
+NEXT_PUBLIC_APP_URL          # http://localhost:3000 or production URL
 ```
+
+**Stripe Webhook Setup:**
+- Production: Stripe Dashboard → Developers → Webhooks → Add endpoint
+- Local dev: Use `stripe listen --forward-to localhost:3000/api/stripe/webhook`
+- Events needed: `checkout.session.completed`, `customer.subscription.updated`, `customer.subscription.deleted`
 
 ## Not Yet Implemented
 
@@ -391,6 +480,7 @@ NEXT_PUBLIC_APP_URL
 - Push notifications
 - Message reactions (emojis)
 - Place chat message edit/delete (only DMs have this currently)
+- Subscription cancellation UI notice ("cancels on X date")
 
 ## Claude Code Configuration
 
