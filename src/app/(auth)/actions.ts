@@ -139,11 +139,24 @@ export async function signOut() {
 
 export async function signInWithGoogle() {
   const supabase = await createClient();
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
   const { data, error } = await supabase.auth.signInWithOAuth({
     provider: "google",
-    options: { redirectTo: `${process.env.NEXT_PUBLIC_APP_URL}/auth/callback` },
+    options: { redirectTo: `${appUrl}/auth/callback` },
   });
   if (error) return { error: error.message };
   if (data.url) redirect(data.url);
   return { error: "Failed to initiate Google sign-in. Please try again." };
+}
+
+export async function signInWithApple() {
+  const supabase = await createClient();
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
+  const { data, error } = await supabase.auth.signInWithOAuth({
+    provider: "apple",
+    options: { redirectTo: `${appUrl}/auth/callback` },
+  });
+  if (error) return { error: error.message };
+  if (data.url) redirect(data.url);
+  return { error: "Failed to initiate Apple sign-in. Please try again." };
 }

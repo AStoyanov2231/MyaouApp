@@ -83,8 +83,8 @@ src/
 
 **Auth Routes** (`/welcome`, `/login`, `/signup`):
 - Email/password authentication fully implemented with server-side validation
-- Google OAuth backend implemented (`signInWithGoogle`), UI buttons show "Coming soon"
-- Apple OAuth not yet implemented
+- Google OAuth implemented (`signInWithGoogle`) - requires configuration in Google Cloud Console + Supabase Dashboard
+- Apple OAuth implemented (`signInWithApple`) - requires Apple Developer account + configuration in Apple Developer Console + Supabase Dashboard
 - Server actions in `actions.ts` handle all auth operations with:
   - Input validation (null checks, type guards)
   - Server-side length validation (username min 3, password min 6)
@@ -472,8 +472,6 @@ NEXT_PUBLIC_APP_URL          # http://localhost:3000 or production URL
 
 ## Not Yet Implemented
 
-- OAuth UI buttons - backend ready for Google, buttons show "Coming soon"
-- Apple OAuth - not implemented
 - Media sharing in messages - API exists but no UI
 - User search for adding friends
 - Typing indicators
