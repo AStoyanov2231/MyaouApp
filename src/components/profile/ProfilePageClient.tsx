@@ -90,6 +90,18 @@ export function ProfilePageClient({
     setStoreStats,
   ]);
 
+  // Fix: Refresh page when restored from bfcache (user pressed back from Stripe)
+  useEffect(() => {
+    const handlePageShow = (event: PageTransitionEvent) => {
+      if (event.persisted) {
+        // Force full page refresh to get fresh server data
+        window.location.reload();
+      }
+    };
+    window.addEventListener("pageshow", handlePageShow);
+    return () => window.removeEventListener("pageshow", handlePageShow);
+  }, []);
+
   // Optimistic updates for interests
   const [optimisticInterests, updateOptimisticInterests] = useOptimistic(
     interests,
