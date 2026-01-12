@@ -16,7 +16,7 @@ export async function PATCH(
   }
 
   const body = await request.json();
-  const { display_order, is_avatar } = body;
+  const { display_order, is_avatar, is_private } = body;
 
   // Verify ownership
   const { data: existing } = await supabase
@@ -36,7 +36,27 @@ export async function PATCH(
     updates.display_order = display_order;
   }
 
+  if (typeof is_private === "boolean") {
+    updates.is_private = is_private;
+    // If making a photo private that is currently the avatar, clear the avatar
+    if (is_private && existing.is_avatar) {
+      updates.is_avatar = false;
+      await supabase
+        .from("profiles")
+        .update({ avatar_url: null })
+        .eq("id", user.id);
+    }
+  }
+
   if (is_avatar === true) {
+    // Prevent private photos from being set as avatar (avatar is public)
+    if (existing.is_private) {
+      return NextResponse.json(
+        { error: "Cannot set a private photo as avatar. Make the photo public first." },
+        { status: 400 }
+      );
+    }
+
     // Clear other avatars first
     await supabase
       .from("profile_photos")

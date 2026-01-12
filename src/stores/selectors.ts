@@ -8,6 +8,8 @@ export const useInterests = () => useAppStore((state) => state.interests);
 export const useAllTags = () => useAppStore((state) => state.allTags);
 export const useProfileStats = () => useAppStore((state) => state.stats);
 export const useIsProfileLoaded = () => useAppStore((state) => state.isProfileLoaded);
+export const useIsPremium = () => useAppStore((state) => state.profile?.is_premium ?? false);
+export const usePremiumUntil = () => useAppStore((state) => state.profile?.premium_until ?? null);
 
 // Friends selectors
 export const useFriends = () => useAppStore((state) => state.friends);

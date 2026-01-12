@@ -3,6 +3,7 @@
 import { useRef } from "react";
 import { Camera } from "lucide-react";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
+import { PremiumBadge } from "@/components/ui/premium-badge";
 import { cn } from "@/lib/utils";
 import type { Profile } from "@/types/database";
 
@@ -86,9 +87,12 @@ export function ProfileHeader({
 
           {/* Name and info section */}
           <div className="flex-1 text-center md:text-left md:pb-2">
-            <h1 className="text-2xl md:text-3xl font-bold font-['Outfit'] gradient-brand-text">
-              {profile.display_name || profile.username}
-            </h1>
+            <div className="flex items-center justify-center md:justify-start gap-2">
+              <h1 className="text-2xl md:text-3xl font-bold font-['Outfit'] gradient-brand-text">
+                {profile.display_name || profile.username}
+              </h1>
+              {profile.is_premium && <PremiumBadge size="sm" />}
+            </div>
             <p className="text-muted-foreground">@{profile.username}</p>
           </div>
         </div>

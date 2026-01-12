@@ -11,6 +11,8 @@ import {
   ChevronRight,
   Loader2,
   MoreVertical,
+  Lock,
+  Unlock,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -27,6 +29,7 @@ interface PhotoGalleryProps {
   onUpload?: (file: File) => Promise<void>;
   onDelete?: (photoId: string) => Promise<void>;
   onSetAvatar?: (photoId: string) => Promise<void>;
+  onTogglePrivate?: (photoId: string, isPrivate: boolean) => Promise<void>;
   className?: string;
 }
 
@@ -37,6 +40,7 @@ export function PhotoGallery({
   onUpload,
   onDelete,
   onSetAvatar,
+  onTogglePrivate,
   className,
 }: PhotoGalleryProps) {
   const [viewerOpen, setViewerOpen] = useState(false);
@@ -45,6 +49,7 @@ export function PhotoGallery({
   const [isUploading, setIsUploading] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [settingAvatarId, setSettingAvatarId] = useState<string | null>(null);
+  const [togglingPrivateId, setTogglingPrivateId] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const canUpload = photos.length < maxPhotos;
@@ -83,6 +88,17 @@ export function PhotoGallery({
       await onSetAvatar(photoId);
     } finally {
       setSettingAvatarId(null);
+    }
+  };
+
+  const handleTogglePrivate = async (photoId: string, currentPrivate: boolean) => {
+    if (!onTogglePrivate) return;
+    setTogglingPrivateId(photoId);
+    setMenuOpen(null);
+    try {
+      await onTogglePrivate(photoId, !currentPrivate);
+    } finally {
+      setTogglingPrivateId(null);
     }
   };
 
@@ -173,22 +189,32 @@ export function PhotoGallery({
                 </div>
               )}
 
+              {/* Private indicator */}
+              {photo.is_private && isOwner && (
+                <div className="absolute top-1 right-1 bg-black/50 text-white p-1 rounded-full">
+                  <Lock className="h-3 w-3" />
+                </div>
+              )}
+
               {/* Loading overlay */}
-              {(deletingId === photo.id || settingAvatarId === photo.id) && (
+              {(deletingId === photo.id || settingAvatarId === photo.id || togglingPrivateId === photo.id) && (
                 <div className="absolute inset-0 flex items-center justify-center bg-black/30">
                   <Loader2 className="h-6 w-6 text-white animate-spin" />
                 </div>
               )}
 
               {/* Hover overlay with menu */}
-              {isOwner && !deletingId && !settingAvatarId && (
+              {isOwner && !deletingId && !settingAvatarId && !togglingPrivateId && (
                 <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-colors">
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
                       setMenuOpen(menuOpen === photo.id ? null : photo.id);
                     }}
-                    className="absolute top-1 right-1 p-1.5 rounded-full bg-black/50 text-white opacity-0 group-hover:opacity-100 transition-opacity"
+                    className={cn(
+                      "absolute top-1 p-1.5 rounded-full bg-black/50 text-white opacity-0 group-hover:opacity-100 transition-opacity",
+                      photo.is_private ? "right-8" : "right-1"
+                    )}
                   >
                     <MoreVertical className="h-4 w-4" />
                   </button>
@@ -208,6 +234,22 @@ export function PhotoGallery({
                           Set as Avatar
                         </button>
                       )}
+                      <button
+                        onClick={() => handleTogglePrivate(photo.id, photo.is_private)}
+                        className="w-full px-3 py-2 text-left text-sm hover:bg-accent flex items-center gap-2"
+                      >
+                        {photo.is_private ? (
+                          <>
+                            <Unlock className="h-4 w-4" />
+                            Make Public
+                          </>
+                        ) : (
+                          <>
+                            <Lock className="h-4 w-4" />
+                            Make Private
+                          </>
+                        )}
+                      </button>
                       <button
                         onClick={() => handleDelete(photo.id)}
                         className="w-full px-3 py-2 text-left text-sm hover:bg-accent text-destructive flex items-center gap-2"

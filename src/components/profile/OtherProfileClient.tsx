@@ -1,15 +1,14 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { UserPlus, Clock, Check, Loader2 } from "lucide-react";
+import { UserPlus, Clock, Check, Loader2, MapPin } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
-import { MapPin } from "lucide-react";
+import { PremiumBadge } from "@/components/ui/premium-badge";
 import { ProfileStats } from "./ProfileStats";
 import { ProfileInterests } from "./ProfileInterests";
-import { PhotoGallery } from "./PhotoGallery";
-import { cn } from "@/lib/utils";
+import { OtherUserGallery } from "./OtherUserGallery";
 import type {
   Profile,
   ProfilePhoto,
@@ -25,9 +24,11 @@ interface OtherProfileClientProps {
   stats: ProfileStatsType;
   friendship: Friendship | null;
   currentUserId: string;
+  viewerIsPremium: boolean;
 }
 
 function getInitials(name: string) {
+  if (!name || name.length === 0) return "?";
   return name.slice(0, 2).toUpperCase();
 }
 
@@ -38,6 +39,7 @@ export function OtherProfileClient({
   stats,
   friendship: initialFriendship,
   currentUserId,
+  viewerIsPremium,
 }: OtherProfileClientProps) {
   const [friendship, setFriendship] = useState(initialFriendship);
   const [isPending, startTransition] = useTransition();
@@ -115,9 +117,12 @@ export function OtherProfileClient({
 
               {/* Name and info section */}
               <div className="flex-1 text-center md:text-left md:pb-2">
-                <h1 className="text-2xl md:text-3xl font-bold font-['Outfit'] gradient-brand-text">
-                  {profile.display_name || profile.username}
-                </h1>
+                <div className="flex items-center justify-center md:justify-start gap-2">
+                  <h1 className="text-2xl md:text-3xl font-bold font-['Outfit'] gradient-brand-text">
+                    {profile.display_name || profile.username}
+                  </h1>
+                  {profile.is_premium && <PremiumBadge size="sm" />}
+                </div>
                 <p className="text-muted-foreground">@{profile.username}</p>
                 {profile.location_text && (
                   <p className="text-sm text-muted-foreground flex items-center gap-1 justify-center md:justify-start mt-1">
@@ -192,9 +197,9 @@ export function OtherProfileClient({
           isOwner={false}
         />
 
-        <PhotoGallery
+        <OtherUserGallery
           photos={photos}
-          isOwner={false}
+          viewerIsPremium={viewerIsPremium}
         />
       </Card>
 

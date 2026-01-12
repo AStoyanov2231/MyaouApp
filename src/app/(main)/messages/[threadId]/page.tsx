@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Skeleton } from "@/components/ui/skeleton";
+import { PremiumBadge } from "@/components/ui/premium-badge";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/useAuth";
 import { useIsUserOnline } from "@/hooks/usePresence";
@@ -198,7 +199,10 @@ export default function DMConversationPage({ params }: { params: Promise<{ threa
           )}
         </div>
         <div>
-          <h1 className="font-semibold">{other.display_name || other.username}</h1>
+          <div className="flex items-center gap-1.5">
+            <h1 className="font-semibold">{other.display_name || other.username}</h1>
+            {other.is_premium && <PremiumBadge size="sm" />}
+          </div>
           <p className="text-sm text-muted-foreground">
             {isOtherOnline ? (
               <span className="text-green-500">Online</span>

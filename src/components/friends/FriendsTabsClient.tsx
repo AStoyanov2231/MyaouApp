@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Card } from "@/components/ui/card";
+import { PremiumBadge } from "@/components/ui/premium-badge";
 import Link from "next/link";
 import type { Profile, Friendship } from "@/types/database";
 import { useAppStore, type FriendWithFriendshipId } from "@/stores/appStore";
@@ -178,7 +179,10 @@ export function FriendsTabsClient({ initialFriends, initialRequests }: FriendsTa
                   )}
                 </Link>
                 <div className="flex-1">
-                  <p className="font-medium">{friend.display_name || friend.username}</p>
+                  <div className="flex items-center gap-1.5">
+                    <p className="font-medium">{friend.display_name || friend.username}</p>
+                    {friend.is_premium && <PremiumBadge size="sm" />}
+                  </div>
                   <p className="text-sm text-muted-foreground">
                     {isOnline ? <span className="text-green-500">Online</span> : `@${friend.username}`}
                   </p>
@@ -224,7 +228,10 @@ export function FriendsTabsClient({ initialFriends, initialRequests }: FriendsTa
                   </AvatarFallback>
                 </Avatar>
                 <div className="flex-1">
-                  <p className="font-medium">{req.requester.display_name || req.requester.username}</p>
+                  <div className="flex items-center gap-1.5">
+                    <p className="font-medium">{req.requester.display_name || req.requester.username}</p>
+                    {req.requester.is_premium && <PremiumBadge size="sm" />}
+                  </div>
                   <p className="text-sm text-muted-foreground">@{req.requester.username}</p>
                 </div>
                 <div className="flex gap-2">

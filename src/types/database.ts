@@ -10,6 +10,10 @@ export type Profile = {
   created_at: string;
   deleted_at: string | null;
   scheduled_deletion_at: string | null;
+  is_premium: boolean;
+  premium_until: string | null;
+  stripe_customer_id: string | null;
+  stripe_subscription_id: string | null;
 };
 
 export type Place = {
@@ -109,6 +113,7 @@ export type ProfilePhoto = {
   url: string;
   thumbnail_url: string | null;
   is_avatar: boolean;
+  is_private: boolean;
   display_order: number;
   created_at: string;
 };
@@ -133,4 +138,17 @@ export type ProfileStats = {
   places_count: number;
   photos_count: number;
   friends_count: number;
+};
+
+export type Subscription = {
+  id: string;
+  user_id: string;
+  stripe_subscription_id: string;
+  stripe_customer_id: string;
+  status: "active" | "canceled" | "past_due" | "incomplete";
+  current_period_start: string | null;
+  current_period_end: string | null;
+  cancel_at_period_end: boolean;
+  created_at: string;
+  updated_at: string;
 };

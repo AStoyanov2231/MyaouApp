@@ -7,6 +7,7 @@ import { ProfileHeader } from "./ProfileHeader";
 import { ProfileStats } from "./ProfileStats";
 import { ProfileInterests } from "./ProfileInterests";
 import { PhotoGallery } from "./PhotoGallery";
+import { PremiumSection } from "./PremiumSection";
 import { AccountSettings } from "./AccountSettings";
 import { compressImage, createThumbnail } from "@/lib/image-compression";
 import { useAppStore } from "@/stores/appStore";
@@ -213,6 +214,27 @@ export function ProfilePageClient({
     }
   };
 
+  // Toggle photo privacy handler
+  const handleTogglePrivate = async (photoId: string, isPrivate: boolean) => {
+    try {
+      const res = await fetch(`/api/profile/photos/${photoId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ is_private: isPrivate }),
+      });
+
+      if (res.ok) {
+        setStorePhotos(
+          photos.map((p) =>
+            p.id === photoId ? { ...p, is_private: isPrivate } : p
+          )
+        );
+      }
+    } catch (error) {
+      console.error("Failed to toggle photo privacy:", error);
+    }
+  };
+
   // Add interest handler
   const handleAddInterest = async (tagId: string) => {
     const tag = allTags.find((t) => t.id === tagId);
@@ -342,6 +364,12 @@ export function ProfilePageClient({
           onUpload={handlePhotoUpload}
           onDelete={handlePhotoDelete}
           onSetAvatar={handleSetAvatar}
+          onTogglePrivate={handleTogglePrivate}
+        />
+
+        <PremiumSection
+          isPremium={profile.is_premium}
+          premiumUntil={profile.premium_until}
         />
 
         <AccountSettings

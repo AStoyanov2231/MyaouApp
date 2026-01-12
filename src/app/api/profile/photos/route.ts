@@ -55,6 +55,7 @@ export async function POST(request: NextRequest) {
   const formData = await request.formData();
   const file = formData.get("file") as File | null;
   const thumbnail = formData.get("thumbnail") as File | null;
+  const isPrivate = formData.get("is_private") === "true";
 
   if (!file) {
     return NextResponse.json({ error: "No file provided" }, { status: 400 });
@@ -126,6 +127,7 @@ export async function POST(request: NextRequest) {
       url: urlData.publicUrl,
       thumbnail_url: thumbnailUrl,
       display_order: nextOrder,
+      is_private: isPrivate,
     })
     .select()
     .single();

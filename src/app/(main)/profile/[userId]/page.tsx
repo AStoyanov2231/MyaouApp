@@ -95,8 +95,20 @@ export default async function UserProfilePage({
     redirect("/profile");
   }
 
-  const { profile, photos, interests, stats, friendship } =
-    await getOtherProfileData(userId, user.id);
+  // Fetch viewer's premium status and other profile data in parallel
+  const [otherProfileData, viewerProfileResult] = await Promise.all([
+    getOtherProfileData(userId, user.id),
+    supabase.from("profiles").select("is_premium").eq("id", user.id).single(),
+  ]);
+
+  const { profile, photos, interests, stats, friendship } = otherProfileData;
+  const viewerIsPremium = viewerProfileResult.data?.is_premium ?? false;
+
+  // Security: Filter private photos server-side for non-premium viewers
+  // Premium viewers can see all photos, non-premium viewers only see public photos
+  const filteredPhotos = viewerIsPremium
+    ? photos
+    : photos.filter((p) => !p.is_private);
 
   if (!profile) {
     return (
@@ -111,11 +123,12 @@ export default async function UserProfilePage({
   return (
     <OtherProfileClient
       profile={profile}
-      photos={photos}
+      photos={filteredPhotos}
       interests={interests}
       stats={stats}
       friendship={friendship}
       currentUserId={user.id}
+      viewerIsPremium={viewerIsPremium}
     />
   );
 }
