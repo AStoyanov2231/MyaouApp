@@ -10,15 +10,23 @@ export async function login(formData: FormData) {
   // Input validation
   const email = formData.get("email");
   const password = formData.get("password");
+  const captchaToken = formData.get("captchaToken");
 
   if (!email || !password || typeof email !== "string" || typeof password !== "string") {
     return { error: "Email and password are required." };
+  }
+
+  if (!captchaToken || typeof captchaToken !== "string") {
+    return { error: "Captcha verification is required." };
   }
 
   const supabase = await createClient();
   const { data, error } = await supabase.auth.signInWithPassword({
     email,
     password,
+    options: {
+      captchaToken,
+    },
   });
   if (error) {
     // Check if user hasn't confirmed email yet
@@ -62,6 +70,7 @@ export async function signup(formData: FormData) {
   // Input validation - only email and password required (username collected during onboarding)
   const email = formData.get("email");
   const password = formData.get("password");
+  const captchaToken = formData.get("captchaToken");
 
   if (!email || typeof email !== "string") {
     return { error: "Email is required." };
@@ -75,6 +84,10 @@ export async function signup(formData: FormData) {
     return { error: `Password must be at least ${MIN_PASSWORD_LENGTH} characters.` };
   }
 
+  if (!captchaToken || typeof captchaToken !== "string") {
+    return { error: "Captcha verification is required." };
+  }
+
   const supabase = await createClient();
 
   // Use the correct app URL for email confirmation redirect
@@ -85,6 +98,7 @@ export async function signup(formData: FormData) {
     password,
     options: {
       emailRedirectTo: `${appUrl}/auth/callback`,
+      captchaToken,
     },
   });
 
