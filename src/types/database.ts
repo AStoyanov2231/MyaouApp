@@ -14,6 +14,7 @@ export type Profile = {
   premium_until: string | null;
   stripe_customer_id: string | null;
   stripe_subscription_id: string | null;
+  onboarding_completed: boolean;
 };
 
 export type Place = {

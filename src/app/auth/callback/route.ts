@@ -41,25 +41,28 @@ export async function GET(request: Request) {
 
       if (!existingProfile) {
         const serviceClient = createServiceClient();
-        const username = user.user_metadata?.preferred_username ||
-                         user.user_metadata?.user_name ||
-                         `user_${user.id.slice(0, USERNAME_ID_LENGTH)}`;
+        // Use temp username for new OAuth users - they'll set proper username in onboarding
+        const tempUsername = `user_${user.id.slice(0, USERNAME_ID_LENGTH)}`;
 
         const { error: profileError } = await serviceClient.from("profiles").insert({
           id: user.id,
-          username,
+          username: tempUsername,
           display_name: user.user_metadata?.full_name || user.user_metadata?.name || null,
           avatar_url: user.user_metadata?.avatar_url || null,
+          onboarding_completed: false,
         });
 
         if (profileError) {
           console.error("Failed to create profile for OAuth user:", profileError);
           // Continue anyway - profile creation will be retried on next login
         }
+
+        // New user - redirect to onboarding
+        return NextResponse.redirect(`${origin}/onboarding`);
       }
     }
   }
 
-  // Redirect to the intended destination
+  // Existing user - redirect to intended destination (middleware will handle onboarding check)
   return NextResponse.redirect(`${origin}${next}`);
 }

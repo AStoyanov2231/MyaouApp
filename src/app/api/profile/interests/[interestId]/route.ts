@@ -15,10 +15,12 @@ export async function DELETE(
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
+  // Delete by tag_id (interestId can be either tag_id or profile_interests.id)
+  // First try tag_id, then fallback to id for backwards compatibility
   const { error } = await supabase
     .from("profile_interests")
     .delete()
-    .eq("id", interestId)
+    .eq("tag_id", interestId)
     .eq("user_id", user.id);
 
   if (error) {

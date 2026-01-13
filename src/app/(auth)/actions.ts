@@ -21,7 +21,13 @@ export async function login(formData: FormData) {
     email,
     password,
   });
-  if (error) return { error: error.message };
+  if (error) {
+    // Check if user hasn't confirmed email yet
+    if (error.message.includes("Email not confirmed")) {
+      return { emailNotConfirmed: true };
+    }
+    return { error: error.message };
+  }
 
   // Ensure profile exists after login
   if (data.user) {
@@ -39,6 +45,7 @@ export async function login(formData: FormData) {
         username,
         display_name: data.user.user_metadata?.full_name || data.user.user_metadata?.name || null,
         avatar_url: data.user.user_metadata?.avatar_url || null,
+        onboarding_completed: false,
       });
 
       if (profileError) {
@@ -48,14 +55,14 @@ export async function login(formData: FormData) {
     }
   }
 
+  // Note: Middleware will redirect to /onboarding if onboarding_completed is false
   redirect("/places");
 }
 
 export async function signup(formData: FormData) {
-  // Input validation
+  // Input validation - only email and password required (username collected during onboarding)
   const email = formData.get("email");
   const password = formData.get("password");
-  const username = formData.get("username");
 
   if (!email || typeof email !== "string") {
     return { error: "Email is required." };
@@ -63,15 +70,6 @@ export async function signup(formData: FormData) {
 
   if (!password || typeof password !== "string") {
     return { error: "Password is required." };
-  }
-
-  if (!username || typeof username !== "string") {
-    return { error: "Username is required." };
-  }
-
-  // Server-side length validation
-  if (username.length < MIN_USERNAME_LENGTH) {
-    return { error: `Username must be at least ${MIN_USERNAME_LENGTH} characters.` };
   }
 
   if (password.length < MIN_PASSWORD_LENGTH) {
@@ -87,7 +85,6 @@ export async function signup(formData: FormData) {
     email,
     password,
     options: {
-      data: { username },
       emailRedirectTo: `${appUrl}/auth/callback`,
     },
   });
@@ -105,30 +102,32 @@ export async function signup(formData: FormData) {
     return { error: "Signup failed. Please try again." };
   }
 
+  // Generate temporary username - will be set properly during onboarding
+  const tempUsername = `user_${data.user.id.slice(0, USERNAME_ID_LENGTH)}`;
+
   // Explicitly create profile using service client (bypasses RLS)
-  // Handle unique constraint violation instead of pre-checking (fixes TOCTOU race condition)
   const serviceClient = createServiceClient();
   const { error: profileError } = await serviceClient.from("profiles").insert({
     id: data.user.id,
-    username,
+    username: tempUsername,
     display_name: null,
     avatar_url: null,
+    onboarding_completed: false,
   });
 
   if (profileError) {
     console.error("Failed to create profile:", profileError);
-
-    // Check if it's a unique constraint violation on username
-    if (profileError.code === "23505" && profileError.message?.includes("username")) {
-      return { error: "Username is already taken. Please choose another one." };
-    }
-
-    // If profile creation fails for other reasons, still proceed
-    // The user is created in auth, profile will be created on login if missing
+    // If profile creation fails, still proceed - profile will be created on login if missing
     return { error: "Account created but profile setup failed. Please try logging in." };
   }
 
-  redirect("/places");
+  // Check if email confirmation is required (no session means email not confirmed yet)
+  if (!data.session) {
+    return { emailConfirmation: true };
+  }
+
+  // Redirect to onboarding instead of places
+  redirect("/onboarding");
 }
 
 export async function signOut() {
