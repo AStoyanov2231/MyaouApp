@@ -4,7 +4,6 @@ import { redirect } from "next/navigation";
 
 // Constants
 const USERNAME_ID_LENGTH = 8;
-const MIN_USERNAME_LENGTH = 3;
 const MIN_PASSWORD_LENGTH = 6;
 
 export async function login(formData: FormData) {
@@ -102,24 +101,8 @@ export async function signup(formData: FormData) {
     return { error: "Signup failed. Please try again." };
   }
 
-  // Generate temporary username - will be set properly during onboarding
-  const tempUsername = `user_${data.user.id.slice(0, USERNAME_ID_LENGTH)}`;
-
-  // Explicitly create profile using service client (bypasses RLS)
-  const serviceClient = createServiceClient();
-  const { error: profileError } = await serviceClient.from("profiles").insert({
-    id: data.user.id,
-    username: tempUsername,
-    display_name: null,
-    avatar_url: null,
-    onboarding_completed: false,
-  });
-
-  if (profileError) {
-    console.error("Failed to create profile:", profileError);
-    // If profile creation fails, still proceed - profile will be created on login if missing
-    return { error: "Account created but profile setup failed. Please try logging in." };
-  }
+  // Profile creation happens in /auth/callback after email confirmation
+  // This prevents bots from creating profiles without verifying email
 
   // Check if email confirmation is required (no session means email not confirmed yet)
   if (!data.session) {
