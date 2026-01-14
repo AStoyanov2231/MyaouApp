@@ -1,6 +1,7 @@
 "use server";
 import { createClient, createServiceClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
+import { validateEmail, isValidEmailFormat } from "@/lib/email-validation";
 
 // Constants
 const USERNAME_ID_LENGTH = 8;
@@ -12,12 +13,22 @@ export async function login(formData: FormData) {
   const password = formData.get("password");
   const captchaToken = formData.get("captchaToken");
 
-  if (!email || !password || typeof email !== "string" || typeof password !== "string") {
+  if (
+    !email ||
+    !password ||
+    typeof email !== "string" ||
+    typeof password !== "string"
+  ) {
     return { error: "Email and password are required." };
   }
 
   if (!captchaToken || typeof captchaToken !== "string") {
     return { error: "Captcha verification is required." };
+  }
+
+  // Validate email format only (no typo check for login - user knows their email)
+  if (!isValidEmailFormat(email)) {
+    return { error: "Please enter a valid email address." };
   }
 
   const supabase = await createClient();
@@ -46,14 +57,21 @@ export async function login(formData: FormData) {
 
     if (!existingProfile) {
       const serviceClient = createServiceClient();
-      const username = data.user.user_metadata?.username || `user_${data.user.id.slice(0, USERNAME_ID_LENGTH)}`;
-      const { error: profileError } = await serviceClient.from("profiles").insert({
-        id: data.user.id,
-        username,
-        display_name: data.user.user_metadata?.full_name || data.user.user_metadata?.name || null,
-        avatar_url: data.user.user_metadata?.avatar_url || null,
-        onboarding_completed: false,
-      });
+      const username =
+        data.user.user_metadata?.username ||
+        `user_${data.user.id.slice(0, USERNAME_ID_LENGTH)}`;
+      const { error: profileError } = await serviceClient
+        .from("profiles")
+        .insert({
+          id: data.user.id,
+          username,
+          display_name:
+            data.user.user_metadata?.full_name ||
+            data.user.user_metadata?.name ||
+            null,
+          avatar_url: data.user.user_metadata?.avatar_url || null,
+          onboarding_completed: false,
+        });
 
       if (profileError) {
         console.error("Failed to create profile during login:", profileError);
@@ -81,11 +99,23 @@ export async function signup(formData: FormData) {
   }
 
   if (password.length < MIN_PASSWORD_LENGTH) {
-    return { error: `Password must be at least ${MIN_PASSWORD_LENGTH} characters.` };
+    return {
+      error: `Password must be at least ${MIN_PASSWORD_LENGTH} characters.`,
+    };
   }
 
   if (!captchaToken || typeof captchaToken !== "string") {
     return { error: "Captcha verification is required." };
+  }
+
+  // Validate email (format + typos + disposable check)
+  const emailValidation = validateEmail(email);
+  if (!emailValidation.isValid) {
+    // Return error with suggestion if available
+    return {
+      error: emailValidation.error,
+      suggestion: emailValidation.suggestion,
+    };
   }
 
   const supabase = await createClient();
@@ -104,7 +134,10 @@ export async function signup(formData: FormData) {
 
   if (error) {
     // Provide user-friendly error messages
-    if (error.message.includes("already registered") || error.message.includes("User already registered")) {
+    if (
+      error.message.includes("already registered") ||
+      error.message.includes("User already registered")
+    ) {
       return { error: "This email is already registered. Please log in instead." };
     }
     return { error: error.message };

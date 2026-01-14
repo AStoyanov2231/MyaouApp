@@ -13,7 +13,9 @@ import { AtSign, Lock, Loader2, AlertCircle, Apple, Mail } from "lucide-react";
 import { signup, signInWithGoogle, signInWithApple } from "../actions";
 
 export default function WelcomePage() {
+  const [email, setEmail] = useState("");
   const [error, setError] = useState("");
+  const [suggestion, setSuggestion] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [oauthLoading, setOauthLoading] = useState<"apple" | "google" | null>(null);
   const [emailSent, setEmailSent] = useState(false);
@@ -37,6 +39,7 @@ export default function WelcomePage() {
     const result = await signup(formData);
     if (result?.error) {
       setError(result.error);
+      setSuggestion(result.suggestion || null);
       setLoading(false);
       // Reset captcha on error so user can try again
       captchaRef.current?.resetCaptcha();
@@ -117,6 +120,8 @@ export default function WelcomePage() {
                 type="email"
                 placeholder="Email"
                 required
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
                 icon={<AtSign className="h-5 w-5" />}
                 className="border-none"
               />
@@ -140,7 +145,23 @@ export default function WelcomePage() {
               {error && (
                 <Alert variant="destructive">
                   <AlertCircle className="h-4 w-4" />
-                  <AlertDescription>{error}</AlertDescription>
+                  <AlertDescription>
+                    {error}
+                    {suggestion && (
+                      <Button
+                        type="button"
+                        variant="link"
+                        className="p-0 h-auto ml-1 text-white underline"
+                        onClick={() => {
+                          setEmail(suggestion);
+                          setError("");
+                          setSuggestion(null);
+                        }}
+                      >
+                        Use this email
+                      </Button>
+                    )}
+                  </AlertDescription>
                 </Alert>
               )}
               <Button

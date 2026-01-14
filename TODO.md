@@ -28,3 +28,48 @@ Your code looks clean - I don't see anything that would cause duplicate email se
     - Look for any signup events with strange email addresses
 
   This will tell us if the bounces are from your testing or from external sources (bots).
+
+  Here's the picture:
+  ┌─────────────┬───────┐
+  │   Metric    │ Count │
+  ├─────────────┼───────┤
+  │ Total users │ 3     │
+  ├─────────────┼───────┤
+  │ Confirmed   │ 1     │
+  ├─────────────┼───────┤
+  │ Unconfirmed │ 2     │
+  └─────────────┴───────┘
+  Unconfirmed users (potential bounces):
+  1. andysonyz4aqau@gmail.com - typo (definitely bounced)
+  2. politodushave@gmail.com - might also be invalid or just not confirmed yet
+
+  Why Supabase flagged you with just 2 bounces:
+
+  It's about bounce RATE, not absolute numbers. You have:
+  - 2-3 emails sent total
+  - Potentially 2 bounces
+  - That's a ~66% bounce rate
+
+  Industry standard acceptable bounce rate is < 2%. Email providers (including Supabase's upstream provider) flag accounts with high bounce rates regardless of volume.
+
+  The reality of production:
+
+  You're right that attacks can happen. Here's how to handle it:
+  ┌──────────────────┬────────────────────┬──────────────────────────────────┐
+  │    Protection    │       Status       │              Notes               │
+  ├──────────────────┼────────────────────┼──────────────────────────────────┤
+  │ hCaptcha         │ ✅ Enabled         │ Blocks bots, not typos           │
+  ├──────────────────┼────────────────────┼──────────────────────────────────┤
+  │ Rate limiting    │ ❌ Not implemented │ Add per-IP signup limits         │
+  ├──────────────────┼────────────────────┼──────────────────────────────────┤
+  │ Email validation │ ❌ Not implemented │ Check format + disposable emails │
+  ├──────────────────┼────────────────────┼──────────────────────────────────┤
+  │ Custom SMTP      │ ❌ Not configured  │ Isolates YOUR reputation         │
+  └──────────────────┴────────────────────┴──────────────────────────────────┘
+  My recommendation:
+
+  1. Delete these 2 unconfirmed users - clears the immediate issue
+  2. Set up custom SMTP (Resend gives 3,000 free emails/month) - protects you from this in the future
+  3. Consider adding email validation or stricter rate limiting for production
+
+  Want me to help you set up Resend as your SMTP provider? It takes about 5 minutes and completely solves this problem by giving you your own email reputation separate from Supabase's shared infrastructure.
