@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -22,7 +21,6 @@ const MIN_USERNAME_LENGTH = 3;
 const MIN_INTERESTS = 5;
 
 export default function OnboardingPage() {
-  const router = useRouter();
   const [step, setStep] = useState(1);
   const [username, setUsername] = useState("");
   const [usernameError, setUsernameError] = useState("");
@@ -169,13 +167,14 @@ export default function OnboardingPage() {
 
       if (!res.ok) {
         setInterestError(data.error || "Failed to complete onboarding");
+        setCompleting(false);
         return;
       }
 
-      router.push("/places");
+      // Hard redirect after brief delay to ensure state is saved
+      setTimeout(() => window.location.replace("/places"), 100);
     } catch {
       setInterestError("Something went wrong. Please try again.");
-    } finally {
       setCompleting(false);
     }
   };
