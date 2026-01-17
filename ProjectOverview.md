@@ -118,6 +118,82 @@ Location-based chat app where users discover real-world places (via Google Place
 
 **Photo Privacy** - Private photos server-filtered, only visible to premium users. Avatars always public.
 
+## Design System
+
+### Color Tokens
+| Token | Purpose |
+|-------|---------|
+| `primary` | Indigo (#6366f1) - brand anchor |
+| `accent` | Cyan (#22d3ee) - highlights |
+| `warm` | Amber (#F59E0B) - CTAs, notifications |
+| `success` | Emerald (#10B981) - online status, confirmations |
+| `cat-pink` | Pink (#F472B6) - playful cat-themed accents |
+
+### Shadow Scale
+- `shadow-primary-sm/md/lg/xl` - Colored shadows with primary tint
+- `shadow-lift` - Card hover lift effect
+- `shadow-glow-primary/accent/success/warm` - Glow effects
+
+### Utility Classes (globals.css)
+| Class | Purpose |
+|-------|---------|
+| `gradient-brand` | Horizontal primary→accent gradient |
+| `gradient-brand-diagonal` | 135deg gradient |
+| `noise-texture` | 2.5% grain overlay for premium feel |
+| `glass` / `glass-premium` | Glassmorphism with backdrop blur |
+| `card-interactive` | Hover lift effect for cards |
+| `btn-press` | Button press scale animation |
+| `status-online/away/offline` | Status indicator dots with glow |
+| `presence-pulse` | Breathing animation for online users |
+| `skeleton-shimmer` | Shimmer loading effect |
+| `typing-dots` / `typing-dot` | Animated typing indicator |
+| `checkmark-sent/delivered/read` | Message delivery status colors |
+| `nav-indicator` | Sliding navigation indicator |
+
+### UI Components
+
+**New Components** (`src/components/ui/`):
+| Component | Purpose |
+|-----------|---------|
+| `EmptyState` | Cat illustrations for empty states (no-messages, no-friends, no-places, no-search-results, profile-incomplete) |
+| `LoadingSpinner` | Branded spinner with `default`, `paw`, `cat` variants |
+| `PageLoader` | Full-page loading with cat animation |
+| `PageTransition` | CSS-based page transitions (fade, slide-up, slide-right, scale) |
+| `StaggeredList` | Animated list items with stagger delay |
+| `Confetti` | Celebration confetti animation |
+| `useConfetti` | Hook to trigger confetti |
+
+**New Message Components** (`src/components/messages/`):
+| Component | Purpose |
+|-----------|---------|
+| `MessageDeliveryStatus` | Checkmarks for sent/delivered/read status |
+| `TypingIndicator` | Animated typing dots in bubble |
+
+**Enhanced Components**:
+| Component | Enhancement |
+|-----------|-------------|
+| `Button` | New variants: `gradient`, `warm`, `success`. New size: `xl`. Active press state. |
+| `Card` | `interactive` prop for hover lift, `glass` prop for glassmorphism |
+| `Skeleton` | `shimmer` prop for shimmer effect (default: false) |
+| `Avatar` | New `AvatarWithStatus` with online/away/offline indicators |
+| `Sidebar` | Sliding active indicator, icon hover animations, badge pulse |
+| `MobileNav` | Glass effect, active indicator bar, icon animations |
+
+### Animations (tailwind.config.ts)
+| Animation | Purpose |
+|-----------|---------|
+| `shimmer` | Skeleton loading shimmer |
+| `pulse-soft` | Gentle opacity pulse |
+| `bounce-soft` | Subtle bounce |
+| `slide-indicator` | Nav indicator slide |
+| `typing-dot` | Staggered typing dots |
+| `confetti` | Celebration particles |
+| `spin-slow` | 3s rotation for cat spinner |
+
+### Favicon
+- `src/app/icon.tsx` - Cat face favicon (32x32)
+- `src/app/apple-icon.tsx` - Apple touch icon (180x180)
+
 ## Directory Structure
 
 ```
@@ -126,10 +202,13 @@ src/
 │   ├── (auth)/          # Unauthenticated routes
 │   ├── (main)/          # Protected routes
 │   ├── auth/callback/   # OAuth handler
-│   └── api/             # API routes
+│   ├── api/             # API routes
+│   ├── icon.tsx         # Cat favicon
+│   └── apple-icon.tsx   # Apple touch icon
 ├── components/
-│   ├── ui/              # shadcn/ui
-│   ├── layout/          # Sidebar, MobileNav
+│   ├── ui/              # shadcn/ui + custom (EmptyState, LoadingSpinner, etc.)
+│   ├── layout/          # Sidebar, MobileNav (with sliding indicator)
+│   ├── messages/        # MessageDeliveryStatus, TypingIndicator
 │   ├── places/          # Map components
 │   ├── friends/         # Friend components
 │   └── profile/         # Profile components
@@ -157,8 +236,11 @@ NEXT_PUBLIC_APP_URL
 
 - Media sharing in messages (API exists, no UI)
 - User search for adding friends
-- Typing indicators
+- Typing indicators (component exists: `TypingIndicator`, needs realtime integration)
 - Push notifications
 - Message reactions
 - Place chat message edit/delete
 - Subscription cancellation UI notice
+- Integration of `EmptyState` component into existing pages
+- Integration of `MessageDeliveryStatus` into message bubbles
+- Integration of `AvatarWithStatus` for online presence display

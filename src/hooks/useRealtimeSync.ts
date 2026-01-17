@@ -105,6 +105,16 @@ export function useRealtimeSync() {
           if (!isMounted) return;
           const msg = payload.new as DMMessage;
           addMessage(msg.thread_id, msg);
+
+          // Check if user is viewing this thread - auto-mark read
+          const { activeThreadId, profile, markThreadRead } = useAppStore.getState();
+          if (activeThreadId === msg.thread_id && profile && msg.sender_id !== profile.id) {
+            // User is viewing this thread, mark as read immediately
+            fetch(`/api/dm/${msg.thread_id}/read`, { method: "POST" })
+              .then((res) => { if (res.ok) markThreadRead(msg.thread_id); })
+              .catch(() => {});
+          }
+
           // Debounced refetch to update unread counts and thread order
           debouncedRefetchThreads();
         }
@@ -139,6 +149,16 @@ export function useRealtimeSync() {
           if (!isMounted) return;
           const msg = payload.new as Message;
           addMessage(msg.place_id, msg);
+
+          // Check if user is viewing this place - auto-mark read
+          const { activeThreadId, profile, markThreadRead } = useAppStore.getState();
+          if (activeThreadId === msg.place_id && profile && msg.sender_id !== profile.id) {
+            // User is viewing this place, mark as read immediately
+            fetch(`/api/places/${msg.place_id}/read`, { method: "POST" })
+              .then((res) => { if (res.ok) markThreadRead(msg.place_id); })
+              .catch(() => {});
+          }
+
           // Debounced refetch to update unread counts
           debouncedRefetchThreads();
         }

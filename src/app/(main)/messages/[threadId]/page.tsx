@@ -42,6 +42,7 @@ export default function DMConversationPage({ params }: { params: Promise<{ threa
   const storeMessages = useThreadMessages(threadId);
   const setThreadMessages = useAppStore((s) => s.setThreadMessages);
   const markThreadRead = useAppStore((s) => s.markThreadRead);
+  const setActiveThreadId = useAppStore((s) => s.setActiveThreadId);
 
   // Use store messages if available, otherwise local fetch
   const [localMessages, setLocalMessages] = useState<DMMessage[]>([]);
@@ -55,6 +56,9 @@ export default function DMConversationPage({ params }: { params: Promise<{ threa
 
   useEffect(() => {
     let isMounted = true;
+
+    // Track that user is viewing this thread (for realtime unread logic)
+    setActiveThreadId(threadId);
 
     fetch(`/api/dm/${threadId}`)
       .then((r) => {
@@ -84,8 +88,13 @@ export default function DMConversationPage({ params }: { params: Promise<{ threa
 
     return () => {
       isMounted = false;
+      // Clear active thread when leaving (only if still viewing this thread)
+      const currentActiveThreadId = useAppStore.getState().activeThreadId;
+      if (currentActiveThreadId === threadId) {
+        useAppStore.getState().setActiveThreadId(null);
+      }
     };
-  }, [threadId, setThreadMessages, markThreadRead]);
+  }, [threadId, setThreadMessages, markThreadRead, setActiveThreadId]);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });

@@ -81,6 +81,7 @@ interface AppState {
   threadMessages: Record<string, (DMMessage | Message)[]>;
   totalUnread: number;
   currentPlace: (Place & { membership_id: string }) | null;
+  activeThreadId: string | null;
 
   // Loading states
   isPreloading: boolean;
@@ -116,6 +117,7 @@ interface AppState {
   updateTotalUnread: (count: number) => void;
   markThreadRead: (threadId: string) => void;
   setCurrentPlace: (place: (Place & { membership_id: string }) | null) => void;
+  setActiveThreadId: (threadId: string | null) => void;
 
   // Presence actions
   onlineUsers: Set<string>;
@@ -141,6 +143,7 @@ export const useAppStore = create<AppState>((set, get) => ({
   threadMessages: {},
   totalUnread: 0,
   currentPlace: null,
+  activeThreadId: null,
   onlineUsers: new Set<string>(),
   isPreloading: false,
   preloadError: null,
@@ -214,6 +217,7 @@ export const useAppStore = create<AppState>((set, get) => ({
       threadMessages: {},
       totalUnread: 0,
       currentPlace: null,
+      activeThreadId: null,
       onlineUsers: new Set<string>(),
       isPreloading: false,
       preloadError: null,
@@ -296,6 +300,7 @@ export const useAppStore = create<AppState>((set, get) => ({
       };
     }),
   setCurrentPlace: (place) => set({ currentPlace: place }),
+  setActiveThreadId: (threadId) => set({ activeThreadId: threadId }),
 
   // Presence actions
   setOnlineUsers: (userIds) => set({ onlineUsers: new Set(userIds) }),

@@ -39,7 +39,10 @@ export function useMessages(placeId: string) {
   useEffect(() => {
     // Get store actions via getState() to avoid dependency issues
     // This prevents infinite re-render loops (React error #185)
-    const { setThreadMessages, markThreadRead } = useAppStore.getState();
+    const { setThreadMessages, markThreadRead, setActiveThreadId } = useAppStore.getState();
+
+    // Track that user is viewing this thread (for realtime unread logic)
+    setActiveThreadId(placeId);
 
     const fetchMessages = async () => {
       setLoading(true);
@@ -63,6 +66,14 @@ export function useMessages(placeId: string) {
     markThreadRead(placeId);
 
     // No per-route Realtime subscription - useRealtimeSync handles it globally
+
+    return () => {
+      // Clear active thread when leaving
+      const { activeThreadId } = useAppStore.getState();
+      if (activeThreadId === placeId) {
+        useAppStore.getState().setActiveThreadId(null);
+      }
+    };
   }, [placeId]); // Only depend on placeId - stable primitive
 
   return { messages, loading, sendMessage };
