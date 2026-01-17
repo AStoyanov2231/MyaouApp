@@ -18,27 +18,57 @@ export function MobileNav() {
   const { unreadCount } = useUnreadMessagesContext();
 
   return (
-    <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-card border-t flex pb-[var(--safe-area-bottom)]">
-      {navItems.map(({ href, icon: Icon, label }) => (
-        <Link
-          key={href}
-          href={href}
-          className={cn(
-            "flex-1 flex flex-col items-center py-2 text-xs",
-            pathname.startsWith(href) ? "text-primary" : "text-muted-foreground"
-          )}
-        >
-          <div className="relative">
-            <Icon className="h-5 w-5" />
-            {href === "/messages" && unreadCount > 0 && (
-              <Badge className="absolute -top-1 -right-2 h-4 min-w-[16px] px-1 flex items-center justify-center rounded-full text-[10px] bg-destructive">
-                {unreadCount > 9 ? "9+" : unreadCount}
-              </Badge>
+    <nav className="md:hidden fixed bottom-0 left-0 right-0 glass border-t flex pb-[var(--safe-area-bottom)] z-50">
+      {navItems.map(({ href, icon: Icon, label }) => {
+        const isActive = pathname.startsWith(href);
+
+        return (
+          <Link
+            key={href}
+            href={href}
+            className={cn(
+              "flex-1 flex flex-col items-center py-2 text-xs transition-all duration-200 relative group",
+              isActive
+                ? "text-primary"
+                : "text-muted-foreground active:scale-95"
             )}
-          </div>
-          {label}
-        </Link>
-      ))}
+          >
+            {/* Active indicator bar */}
+            {isActive && (
+              <div className="absolute top-0 left-1/2 -translate-x-1/2 w-8 h-0.5 bg-primary rounded-full" />
+            )}
+
+            <div className="relative">
+              <Icon
+                className={cn(
+                  "h-5 w-5 transition-transform duration-200",
+                  isActive ? "scale-110" : "group-active:scale-90"
+                )}
+              />
+              {href === "/messages" && unreadCount > 0 && (
+                <Badge
+                  className={cn(
+                    "absolute -top-1.5 -right-2.5 h-4 min-w-[16px] px-1 flex items-center justify-center",
+                    "rounded-full text-[10px] font-semibold bg-destructive text-destructive-foreground",
+                    "shadow-sm animate-pulse-soft"
+                  )}
+                >
+                  {unreadCount > 9 ? "9+" : unreadCount}
+                </Badge>
+              )}
+            </div>
+
+            <span
+              className={cn(
+                "mt-0.5 transition-all duration-200",
+                isActive ? "font-medium" : "opacity-80"
+              )}
+            >
+              {label}
+            </span>
+          </Link>
+        );
+      })}
     </nav>
   );
 }

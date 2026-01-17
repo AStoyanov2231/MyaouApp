@@ -47,4 +47,55 @@ const AvatarFallback = React.forwardRef<
 ))
 AvatarFallback.displayName = AvatarPrimitive.Fallback.displayName
 
-export { Avatar, AvatarImage, AvatarFallback }
+// Avatar with online status indicator
+interface AvatarWithStatusProps {
+  src?: string | null;
+  fallback: string;
+  status?: "online" | "away" | "offline";
+  size?: "sm" | "md" | "lg";
+  className?: string;
+}
+
+const sizeClasses = {
+  sm: "h-8 w-8",
+  md: "h-10 w-10",
+  lg: "h-14 w-14",
+};
+
+const statusSizeClasses = {
+  sm: "w-2 h-2 right-0 bottom-0",
+  md: "w-3 h-3 right-0 bottom-0",
+  lg: "w-3.5 h-3.5 right-0.5 bottom-0.5",
+};
+
+function AvatarWithStatus({
+  src,
+  fallback,
+  status,
+  size = "md",
+  className,
+}: AvatarWithStatusProps) {
+  return (
+    <div className={cn("relative inline-block", className)}>
+      <Avatar className={sizeClasses[size]}>
+        {src && <AvatarImage src={src} alt={fallback} />}
+        <AvatarFallback className="gradient-brand-subtle text-foreground font-medium">
+          {(fallback || "??").slice(0, 2).toUpperCase()}
+        </AvatarFallback>
+      </Avatar>
+      {status && (
+        <span
+          className={cn(
+            "absolute border-2 border-background rounded-full",
+            statusSizeClasses[size],
+            status === "online" && "status-online presence-pulse",
+            status === "away" && "status-away",
+            status === "offline" && "status-offline"
+          )}
+        />
+      )}
+    </div>
+  );
+}
+
+export { Avatar, AvatarImage, AvatarFallback, AvatarWithStatus }

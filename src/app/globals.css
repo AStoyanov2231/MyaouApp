@@ -159,6 +159,14 @@ body {
     --chart-4: 43 74% 66%;
     --chart-5: 27 87% 67%;
     --radius: 0.5rem;
+
+    /* New color tokens for design polish */
+    --warm: 38 92% 50%; /* Amber #F59E0B */
+    --warm-foreground: 0 0% 100%;
+    --success: 160 84% 39%; /* Emerald #10B981 */
+    --success-foreground: 0 0% 100%;
+    --cat-pink: 330 86% 70%; /* Pink #F472B6 */
+    --cat-pink-foreground: 0 0% 100%;
   }
   .dark {
     --background: 222.2 84% 4.9%;
@@ -185,6 +193,14 @@ body {
     --chart-3: 30 80% 55%;
     --chart-4: 280 65% 60%;
     --chart-5: 340 75% 55%;
+
+    /* Dark mode adjustments for new tokens */
+    --warm: 38 92% 55%;
+    --warm-foreground: 222.2 47.4% 11.2%;
+    --success: 160 84% 45%;
+    --success-foreground: 222.2 47.4% 11.2%;
+    --cat-pink: 330 86% 75%;
+    --cat-pink-foreground: 222.2 47.4% 11.2%;
   }
 }
 
@@ -224,6 +240,140 @@ body {
 
   .gradient-brand-subtle {
     @apply bg-gradient-to-br from-primary/10 to-accent/10;
+  }
+
+  /* Diagonal gradient variation */
+  .gradient-brand-diagonal {
+    background: linear-gradient(135deg, hsl(var(--primary)) 0%, hsl(var(--accent)) 100%);
+  }
+
+  /* Radial gradient variation */
+  .gradient-brand-radial {
+    background: radial-gradient(ellipse at center, hsl(var(--primary)) 0%, hsl(var(--accent)) 100%);
+  }
+
+  /* Noise texture overlay for premium feel */
+  .noise-texture {
+    position: relative;
+  }
+  .noise-texture::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
+    opacity: 0.025;
+    pointer-events: none;
+    border-radius: inherit;
+  }
+
+  /* Glass morphism effect */
+  .glass {
+    @apply bg-background/80 backdrop-blur-md;
+    border: 1px solid hsl(var(--border) / 0.5);
+  }
+
+  /* Enhanced glass with edge lighting */
+  .glass-premium {
+    @apply bg-background/70 backdrop-blur-xl;
+    border: 1px solid hsl(var(--border) / 0.3);
+    box-shadow:
+      inset 0 1px 1px 0 hsl(0 0% 100% / 0.1),
+      0 4px 12px hsl(var(--primary) / 0.08);
+  }
+
+  /* Card with hover lift effect */
+  .card-interactive {
+    @apply transition-all duration-300 ease-out;
+  }
+  .card-interactive:hover {
+    @apply shadow-lift -translate-y-0.5;
+  }
+
+  /* Press state for buttons */
+  .btn-press {
+    @apply transition-transform duration-100;
+  }
+  .btn-press:active {
+    @apply scale-[0.97];
+  }
+
+  /* Badge notification pulse */
+  .badge-pulse {
+    @apply relative;
+  }
+  .badge-pulse::before {
+    content: '';
+    @apply absolute inset-0 rounded-full;
+    background: inherit;
+    animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  }
+
+  /* Status indicators */
+  .status-online {
+    @apply w-3 h-3 rounded-full bg-success;
+    box-shadow: 0 0 0 2px hsl(var(--background)), 0 0 8px hsl(var(--success) / 0.5);
+  }
+  .status-away {
+    @apply w-3 h-3 rounded-full bg-warm;
+    box-shadow: 0 0 0 2px hsl(var(--background)), 0 0 8px hsl(var(--warm) / 0.5);
+  }
+  .status-offline {
+    @apply w-3 h-3 rounded-full bg-muted-foreground/50;
+    box-shadow: 0 0 0 2px hsl(var(--background));
+  }
+
+  /* Breathing animation for online presence */
+  .presence-pulse {
+    animation: presence-breathe 3s ease-in-out infinite;
+  }
+
+  /* Skeleton shimmer effect */
+  .skeleton-shimmer {
+    @apply relative overflow-hidden bg-muted;
+  }
+  .skeleton-shimmer::after {
+    content: '';
+    @apply absolute inset-0;
+    background: linear-gradient(
+      90deg,
+      transparent 0%,
+      hsl(var(--primary) / 0.08) 50%,
+      transparent 100%
+    );
+    animation: shimmer 2s linear infinite;
+  }
+
+  /* Typing indicator dots */
+  .typing-dots {
+    @apply flex gap-1 items-center;
+  }
+  .typing-dot {
+    @apply w-2 h-2 rounded-full bg-muted-foreground/60;
+    animation: typing-dot 1.4s ease-in-out infinite;
+  }
+  .typing-dot:nth-child(2) {
+    animation-delay: 0.2s;
+  }
+  .typing-dot:nth-child(3) {
+    animation-delay: 0.4s;
+  }
+
+  /* Message delivery checkmarks */
+  .checkmark-sent {
+    @apply text-muted-foreground/50;
+  }
+  .checkmark-delivered {
+    @apply text-muted-foreground;
+  }
+  .checkmark-read {
+    @apply text-primary;
+  }
+
+  /* Navigation sliding indicator */
+  .nav-indicator {
+    @apply absolute left-0 bg-primary rounded-r-full;
+    width: 3px;
+    transition: top 0.3s cubic-bezier(0.4, 0, 0.2, 1), height 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   }
 
   /* Safe height for mobile - accounts for nav and safe areas */
@@ -302,6 +452,34 @@ body {
 
 .animate-message-receive {
   animation: messageReceive 0.2s ease-out;
+}
+
+/* Presence breathing animation */
+@keyframes presence-breathe {
+  0%, 100% {
+    box-shadow: 0 0 0 2px hsl(var(--background)), 0 0 8px hsl(var(--success) / 0.5);
+    transform: scale(1);
+  }
+  50% {
+    box-shadow: 0 0 0 2px hsl(var(--background)), 0 0 12px hsl(var(--success) / 0.7);
+    transform: scale(1.05);
+  }
+}
+
+/* Confetti animation */
+@keyframes confetti-fall {
+  0% {
+    transform: translateY(0) rotate(0deg);
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(100vh) rotate(720deg);
+    opacity: 0;
+  }
+}
+
+.animate-confetti {
+  animation: confetti-fall 3s ease-out forwards;
 }
 
 /* Mobile-specific safe height - subtract nav only, input handles its own safe area padding */

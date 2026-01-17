@@ -75,7 +75,8 @@
       "WebSearch",
       "mcp__supabase__search_docs",
       "mcp__plugin_supabase_supabase__get_logs",
-      "Skill(example-skills:frontend-design)"
+      "Skill(example-skills:frontend-design)",
+      "Bash(dir:*)"
     ]
   }
 }
