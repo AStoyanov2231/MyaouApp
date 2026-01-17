@@ -18,7 +18,7 @@ export function MobileNav() {
   const { unreadCount } = useUnreadMessagesContext();
 
   return (
-    <nav className="md:hidden fixed bottom-0 left-0 right-0 glass border-t flex pb-[var(--safe-area-bottom)] z-50">
+    <nav className="md:hidden fixed bottom-0 left-0 right-0 glass border-t-0 flex pb-[var(--safe-area-bottom)] z-50">
       {navItems.map(({ href, icon: Icon, label }) => {
         const isActive = pathname.startsWith(href);
 
@@ -27,7 +27,7 @@ export function MobileNav() {
             key={href}
             href={href}
             className={cn(
-              "flex-1 flex flex-col items-center py-2 text-xs transition-all duration-200 relative group",
+              "flex-1 flex flex-col items-center pt-4 pb-2 text-xs transition-all duration-200 relative group",
               isActive
                 ? "text-primary"
                 : "text-muted-foreground active:scale-95"

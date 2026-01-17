@@ -1,16 +1,28 @@
 "use client";
 
 import { useState, useOptimistic, useTransition, useEffect } from "react";
-import { Check, X, MessageCircle, UserMinus, Loader2 } from "lucide-react";
+import { Check, X, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Card } from "@/components/ui/card";
 import { PremiumBadge } from "@/components/ui/premium-badge";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
 import type { Profile, Friendship } from "@/types/database";
 import { useAppStore, type FriendWithFriendshipId } from "@/stores/appStore";
 import { useFriends, useFriendRequests, useIsFriendsLoaded, useOnlineUsers } from "@/stores/selectors";
+import { SwipeableFriendCard } from "./SwipeableFriendCard";
 
 function getInitials(name: string | null | undefined): string {
   if (!name || name.length === 0) return "??";
@@ -23,6 +35,8 @@ interface FriendsTabsClientProps {
 }
 
 export function FriendsTabsClient({ initialFriends, initialRequests }: FriendsTabsClientProps) {
+  const router = useRouter();
+
   // Get store data and actions
   const storeFriends = useFriends();
   const storeRequests = useFriendRequests();
@@ -50,6 +64,9 @@ export function FriendsTabsClient({ initialFriends, initialRequests }: FriendsTa
 
   const [, startTransition] = useTransition();
   const [processingIds, setProcessingIds] = useState<Set<string>>(new Set());
+
+  // State for unfriend confirmation dialog
+  const [friendToRemove, setFriendToRemove] = useState<FriendWithFriendshipId | null>(null);
 
   // Optimistic updates for instant feedback on accept/reject
   const [optimisticRequests, updateOptimisticRequests] = useOptimistic(
@@ -117,9 +134,14 @@ export function FriendsTabsClient({ initialFriends, initialRequests }: FriendsTa
     });
   };
 
-  const handleUnfriend = async (friendshipId: string, friendId: string) => {
+  const handleUnfriend = async (friend: FriendWithFriendshipId) => {
+    const { friendship_id: friendshipId, id: friendId } = friend;
+
     // Prevent double-click
     if (processingIds.has(friendshipId)) return;
+
+    // Close the dialog
+    setFriendToRemove(null);
 
     // Mark as processing
     setProcessingIds((prev) => new Set(prev).add(friendshipId));
@@ -151,6 +173,11 @@ export function FriendsTabsClient({ initialFriends, initialRequests }: FriendsTa
     });
   };
 
+  // Navigate to messages with this friend
+  const handleOpenChat = (friendId: string) => {
+    router.push(`/messages?user=${friendId}`);
+  };
+
   return (
     <Tabs defaultValue="friends" className="w-full">
       <TabsList className="mb-4">
@@ -165,53 +192,73 @@ export function FriendsTabsClient({ initialFriends, initialRequests }: FriendsTa
           ) : (
             optimisticFriends.map((friend) => {
               const isOnline = onlineUsers.has(friend.id);
+              const isProcessing = processingIds.has(friend.friendship_id);
               return (
-              <Card key={friend.id} className="p-4 flex items-center gap-3 hover:shadow-md hover:border-primary/20 transition-all duration-200">
-                <Link href={`/profile/${friend.id}`} className="relative">
-                  <Avatar className="h-10 w-10">
-                    <AvatarImage src={friend.avatar_url || undefined} alt={friend.display_name || friend.username} />
-                    <AvatarFallback className="bg-primary text-primary-foreground">
-                      {getInitials(friend.display_name || friend.username)}
-                    </AvatarFallback>
-                  </Avatar>
-                  {isOnline && (
-                    <div className="absolute bottom-0 right-0 h-3 w-3 bg-green-500 rounded-full border-2 border-card" />
-                  )}
-                </Link>
-                <div className="flex-1">
-                  <div className="flex items-center gap-1.5">
-                    <p className="font-medium">{friend.display_name || friend.username}</p>
-                    {friend.is_premium && <PremiumBadge size="sm" />}
-                  </div>
-                  <p className="text-sm text-muted-foreground">
-                    {isOnline ? <span className="text-green-500">Online</span> : `@${friend.username}`}
-                  </p>
-                </div>
-                <div className="flex gap-1">
-                  <Link href={`/messages?user=${friend.id}`}>
-                    <Button variant="ghost" size="sm">
-                      <MessageCircle className="h-5 w-5" />
-                    </Button>
-                  </Link>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => handleUnfriend(friend.friendship_id, friend.id)}
-                    disabled={processingIds.has(friend.friendship_id)}
-                    className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                <SwipeableFriendCard
+                  key={friend.id}
+                  onSwipeComplete={() => setFriendToRemove(friend)}
+                  disabled={isProcessing}
+                >
+                  <Card
+                    className="p-4 flex items-center gap-3 hover:bg-accent/50 active:bg-accent/70 transition-colors cursor-pointer select-none border-0 rounded-none"
+                    onClick={() => handleOpenChat(friend.id)}
                   >
-                    {processingIds.has(friend.friendship_id) ? (
-                      <Loader2 className="h-5 w-5 animate-spin" />
-                    ) : (
-                      <UserMinus className="h-5 w-5" />
+                    <div className="relative" onClick={(e) => { e.stopPropagation(); }}>
+                      <Link href={`/profile/${friend.id}`}>
+                        <Avatar className="h-10 w-10">
+                          <AvatarImage src={friend.avatar_url || undefined} alt={friend.display_name || friend.username} />
+                          <AvatarFallback className="bg-primary text-primary-foreground">
+                            {getInitials(friend.display_name || friend.username)}
+                          </AvatarFallback>
+                        </Avatar>
+                        {isOnline && (
+                          <div className="absolute bottom-0 right-0 h-3 w-3 bg-green-500 rounded-full border-2 border-card" />
+                        )}
+                      </Link>
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-1.5">
+                        <p className="font-medium">{friend.display_name || friend.username}</p>
+                        {friend.is_premium && <PremiumBadge size="sm" />}
+                      </div>
+                      <p className="text-sm text-muted-foreground">
+                        {isOnline ? <span className="text-green-500">Online</span> : `@${friend.username}`}
+                      </p>
+                    </div>
+                    {isProcessing && (
+                      <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
                     )}
-                  </Button>
-                </div>
-              </Card>
+                  </Card>
+                </SwipeableFriendCard>
               );
             })
           )}
         </div>
+
+        {/* Unfriend confirmation dialog */}
+        <AlertDialog open={!!friendToRemove} onOpenChange={(open) => !open && setFriendToRemove(null)}>
+          <AlertDialogContent className="max-w-[90vw] sm:max-w-lg rounded-xl">
+            <AlertDialogHeader>
+              <AlertDialogTitle>Remove friend?</AlertDialogTitle>
+              <AlertDialogDescription>
+                Are you sure you want to remove{" "}
+                <span className="font-semibold text-foreground">
+                  {friendToRemove?.display_name || friendToRemove?.username}
+                </span>{" "}
+                from your friends? You can always add them back later.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>No</AlertDialogCancel>
+              <AlertDialogAction
+                onClick={() => friendToRemove && handleUnfriend(friendToRemove)}
+                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              >
+                Yes, remove
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </TabsContent>
 
       <TabsContent value="requests">
