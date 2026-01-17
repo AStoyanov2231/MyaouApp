@@ -1,7 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef } from "react";
 import Link from "next/link";
+import HCaptcha from "@hcaptcha/react-hcaptcha";
 
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
@@ -16,19 +17,36 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   const [oauthLoading, setOauthLoading] = useState<"apple" | "google" | null>(null);
   const [emailNotConfirmed, setEmailNotConfirmed] = useState(false);
+  const [captchaToken, setCaptchaToken] = useState<string | null>(null);
+  const captchaRef = useRef<HCaptcha>(null);
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
+
+    if (!captchaToken) {
+      setError("Please complete the captcha verification.");
+      return;
+    }
+
     setLoading(true);
     setError("");
     setEmailNotConfirmed(false);
-    const result = await login(new FormData(e.currentTarget));
+
+    const formData = new FormData(e.currentTarget);
+    formData.set("captchaToken", captchaToken);
+
+    const result = await login(formData);
     if (result?.error) {
       setError(result.error);
       setLoading(false);
+      // Reset captcha on error so user can try again
+      captchaRef.current?.resetCaptcha();
+      setCaptchaToken(null);
     } else if (result?.emailNotConfirmed) {
       setEmailNotConfirmed(true);
       setLoading(false);
+      captchaRef.current?.resetCaptcha();
+      setCaptchaToken(null);
     }
   }
 
@@ -97,6 +115,15 @@ export default function LoginPage() {
                 icon={<Lock className="h-5 w-5" />}
                 className="border-none"
               />
+              <div className="flex justify-center">
+                <HCaptcha
+                  ref={captchaRef}
+                  sitekey={process.env.NEXT_PUBLIC_HCAPTCHA_SITE_KEY || ""}
+                  onVerify={(token) => setCaptchaToken(token)}
+                  onExpire={() => setCaptchaToken(null)}
+                  theme="dark"
+                />
+              </div>
               {error && (
                 <Alert variant="destructive">
                   <AlertCircle className="h-4 w-4" />
@@ -106,7 +133,7 @@ export default function LoginPage() {
               <Button
                 type="submit"
                 className="w-full rounded-full bg-accent hover:bg-accent/90 text-foreground font-semibold h-12 text-base"
-                disabled={loading}
+                disabled={loading || !captchaToken}
               >
                 {loading ? <Loader2 className="h-5 w-5 animate-spin" /> : "Log in"}
               </Button>

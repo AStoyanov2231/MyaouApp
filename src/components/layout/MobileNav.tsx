@@ -18,7 +18,7 @@ export function MobileNav() {
   const { unreadCount } = useUnreadMessagesContext();
 
   return (
-    <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-card border-t flex">
+    <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-card border-t flex pb-[var(--safe-area-bottom)]">
       {navItems.map(({ href, icon: Icon, label }) => (
         <Link
           key={href}

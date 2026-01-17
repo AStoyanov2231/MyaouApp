@@ -1,7 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef } from "react";
 import Link from "next/link";
+import HCaptcha from "@hcaptcha/react-hcaptcha";
 
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
@@ -12,19 +13,37 @@ import { AtSign, Lock, Loader2, AlertCircle, Apple, Mail } from "lucide-react";
 import { signup, signInWithGoogle, signInWithApple } from "../actions";
 
 export default function WelcomePage() {
+  const [email, setEmail] = useState("");
   const [error, setError] = useState("");
+  const [suggestion, setSuggestion] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [oauthLoading, setOauthLoading] = useState<"apple" | "google" | null>(null);
   const [emailSent, setEmailSent] = useState(false);
+  const [captchaToken, setCaptchaToken] = useState<string | null>(null);
+  const captchaRef = useRef<HCaptcha>(null);
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
+
+    if (!captchaToken) {
+      setError("Please complete the captcha verification.");
+      return;
+    }
+
     setLoading(true);
     setError("");
-    const result = await signup(new FormData(e.currentTarget));
+
+    const formData = new FormData(e.currentTarget);
+    formData.set("captchaToken", captchaToken);
+
+    const result = await signup(formData);
     if (result?.error) {
       setError(result.error);
+      setSuggestion(result.suggestion || null);
       setLoading(false);
+      // Reset captcha on error so user can try again
+      captchaRef.current?.resetCaptcha();
+      setCaptchaToken(null);
     } else if (result?.emailConfirmation) {
       setEmailSent(true);
       setLoading(false);
@@ -101,6 +120,8 @@ export default function WelcomePage() {
                 type="email"
                 placeholder="Email"
                 required
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
                 icon={<AtSign className="h-5 w-5" />}
                 className="border-none"
               />
@@ -112,16 +133,41 @@ export default function WelcomePage() {
                 icon={<Lock className="h-5 w-5" />}
                 className="border-none"
               />
+              <div className="flex justify-center">
+                <HCaptcha
+                  ref={captchaRef}
+                  sitekey={process.env.NEXT_PUBLIC_HCAPTCHA_SITE_KEY || ""}
+                  onVerify={(token) => setCaptchaToken(token)}
+                  onExpire={() => setCaptchaToken(null)}
+                  theme="dark"
+                />
+              </div>
               {error && (
                 <Alert variant="destructive">
                   <AlertCircle className="h-4 w-4" />
-                  <AlertDescription>{error}</AlertDescription>
+                  <AlertDescription>
+                    {error}
+                    {suggestion && (
+                      <Button
+                        type="button"
+                        variant="link"
+                        className="p-0 h-auto ml-1 text-white underline"
+                        onClick={() => {
+                          setEmail(suggestion);
+                          setError("");
+                          setSuggestion(null);
+                        }}
+                      >
+                        Use this email
+                      </Button>
+                    )}
+                  </AlertDescription>
                 </Alert>
               )}
               <Button
                 type="submit"
                 className="w-full rounded-full bg-accent hover:bg-accent/90 text-foreground font-semibold h-12 text-base"
-                disabled={loading || oauthLoading !== null}
+                disabled={loading || oauthLoading !== null || !captchaToken}
               >
                 {loading ? <Loader2 className="h-5 w-5 animate-spin" /> : "Create Account"}
               </Button>

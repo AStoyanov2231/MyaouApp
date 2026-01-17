@@ -47,8 +47,8 @@ export default function PlaceChatPage({ params }: { params: Promise<{ placeId: s
 
   if (!place) {
     return (
-      <div className="flex flex-col h-screen">
-        <div className="bg-card border-b p-4 flex items-center gap-4">
+      <div className="flex flex-col h-screen-safe md:h-screen">
+        <div className="bg-card border-b p-4 pt-[calc(1rem+var(--safe-area-top))] md:pt-4 flex items-center gap-4">
           <Skeleton className="h-6 w-32" />
         </div>
         <div className="flex-1 flex justify-center items-center">
@@ -59,8 +59,8 @@ export default function PlaceChatPage({ params }: { params: Promise<{ placeId: s
   }
 
   return (
-    <div className="flex flex-col h-screen">
-      <header className="bg-card border-b p-4 flex items-center gap-4">
+    <div className="flex flex-col h-screen-safe md:h-screen">
+      <header className="bg-card border-b p-4 pt-[calc(1rem+var(--safe-area-top))] md:pt-4 flex items-center gap-4 sticky top-0 z-10">
         <Link href="/messages" className="md:hidden">
           <ArrowLeft />
         </Link>
@@ -72,7 +72,7 @@ export default function PlaceChatPage({ params }: { params: Promise<{ placeId: s
         </div>
       </header>
 
-      <div className="flex-1 overflow-y-auto p-4 space-y-4">
+      <div className="flex-1 overflow-y-auto p-4 space-y-4 scroll-container">
         {loading ? (
           <div className="flex justify-center">
             <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -91,10 +91,10 @@ export default function PlaceChatPage({ params }: { params: Promise<{ placeId: s
                 </Avatar>
               </Link>
               <div className={cn(
-                "max-w-[70%] p-3 shadow-sm",
+                "max-w-[75%] px-4 py-3",
                 msg.sender_id === user?.id
-                  ? "bg-primary text-primary-foreground rounded-l-xl rounded-tr-xl"
-                  : "bg-card rounded-r-xl rounded-tl-xl"
+                  ? "message-bubble-sent animate-message-send"
+                  : "message-bubble-received animate-message-receive"
               )}>
                 {msg.sender_id !== user?.id && (
                   <Link href={`/profile/${msg.sender_id}`} className="text-xs font-medium text-muted-foreground mb-1 hover:underline block">
@@ -116,10 +116,10 @@ export default function PlaceChatPage({ params }: { params: Promise<{ placeId: s
         <div ref={messagesEndRef} />
       </div>
 
-      <form onSubmit={handleSend} className="bg-card border-t p-4 flex gap-2">
-        <Input value={input} onChange={(e) => setInput(e.target.value)} placeholder="Type a message..." className="flex-1 h-10" />
-        <Button type="submit" disabled={!input.trim() || sending}>
-          {sending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-5 w-5" />}
+      <form onSubmit={handleSend} className="chat-input-container p-3 pb-[calc(0.75rem+var(--safe-area-bottom))] md:pb-3 flex items-center gap-3">
+        <Input value={input} onChange={(e) => setInput(e.target.value)} placeholder="Type a message..." className="chat-input flex-1" />
+        <Button type="submit" disabled={!input.trim() || sending} className="chat-send-button">
+          {sending ? <Loader2 className="h-5 w-5 animate-spin" /> : <Send className="h-5 w-5" />}
         </Button>
       </form>
     </div>
