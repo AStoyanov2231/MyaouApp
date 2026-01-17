@@ -58,8 +58,6 @@ Your code looks clean - I don't see anything that would cause duplicate email se
   ┌──────────────────┬────────────────────┬──────────────────────────────────┐
   │    Protection    │       Status       │              Notes               │
   ├──────────────────┼────────────────────┼──────────────────────────────────┤
-  │ hCaptcha         │ ✅ Enabled         │ Blocks bots, not typos           │
-  ├──────────────────┼────────────────────┼──────────────────────────────────┤
   │ Rate limiting    │ ❌ Not implemented │ Add per-IP signup limits         │
   ├──────────────────┼────────────────────┼──────────────────────────────────┤
   │ Email validation │ ❌ Not implemented │ Check format + disposable emails │

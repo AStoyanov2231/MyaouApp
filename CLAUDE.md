@@ -461,9 +461,6 @@ STRIPE_SECRET_KEY            # sk_test_... or sk_live_...
 STRIPE_WEBHOOK_SECRET        # whsec_... from Stripe Dashboard
 STRIPE_PREMIUM_PRICE_ID      # price_... from Stripe product
 
-# hCaptcha (Bot Protection)
-NEXT_PUBLIC_HCAPTCHA_SITE_KEY # Site key from hCaptcha dashboard
-
 # App
 NEXT_PUBLIC_APP_URL          # http://localhost:3000 or production URL
 ```
@@ -472,12 +469,6 @@ NEXT_PUBLIC_APP_URL          # http://localhost:3000 or production URL
 - Production: Stripe Dashboard → Developers → Webhooks → Add endpoint
 - Local dev: Use `stripe listen --forward-to localhost:3000/api/stripe/webhook`
 - Events needed: `checkout.session.completed`, `customer.subscription.updated`, `customer.subscription.deleted`
-
-**hCaptcha Setup:**
-- Get site key and secret key from [hCaptcha Dashboard](https://dashboard.hcaptcha.com/)
-- Add `NEXT_PUBLIC_HCAPTCHA_SITE_KEY` to `.env.local`
-- Configure secret key in **Supabase Dashboard** → Authentication → Settings → Bot and Abuse Protection → Captcha secret
-- Supabase validates tokens server-side using the secret configured in the dashboard
 
 ## Not Yet Implemented
 

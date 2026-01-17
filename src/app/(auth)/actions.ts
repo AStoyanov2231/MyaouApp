@@ -11,7 +11,6 @@ export async function login(formData: FormData) {
   // Input validation
   const email = formData.get("email");
   const password = formData.get("password");
-  const captchaToken = formData.get("captchaToken");
 
   if (
     !email ||
@@ -20,10 +19,6 @@ export async function login(formData: FormData) {
     typeof password !== "string"
   ) {
     return { error: "Email and password are required." };
-  }
-
-  if (!captchaToken || typeof captchaToken !== "string") {
-    return { error: "Captcha verification is required." };
   }
 
   // Validate email format only (no typo check for login - user knows their email)
@@ -35,9 +30,6 @@ export async function login(formData: FormData) {
   const { data, error } = await supabase.auth.signInWithPassword({
     email,
     password,
-    options: {
-      captchaToken,
-    },
   });
   if (error) {
     // Check if user hasn't confirmed email yet
@@ -88,7 +80,6 @@ export async function signup(formData: FormData) {
   // Input validation - only email and password required (username collected during onboarding)
   const email = formData.get("email");
   const password = formData.get("password");
-  const captchaToken = formData.get("captchaToken");
 
   if (!email || typeof email !== "string") {
     return { error: "Email is required." };
@@ -102,10 +93,6 @@ export async function signup(formData: FormData) {
     return {
       error: `Password must be at least ${MIN_PASSWORD_LENGTH} characters.`,
     };
-  }
-
-  if (!captchaToken || typeof captchaToken !== "string") {
-    return { error: "Captcha verification is required." };
   }
 
   // Validate email (format + typos + disposable check)
@@ -128,7 +115,6 @@ export async function signup(formData: FormData) {
     password,
     options: {
       emailRedirectTo: `${appUrl}/auth/callback`,
-      captchaToken,
     },
   });
 
