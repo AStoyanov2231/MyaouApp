@@ -166,7 +166,7 @@ export function FriendsTabsClient({ initialFriends, initialRequests }: FriendsTa
             optimisticFriends.map((friend) => {
               const isOnline = onlineUsers.has(friend.id);
               return (
-              <Card key={friend.id} className="p-4 flex items-center gap-3">
+              <Card key={friend.id} className="p-4 flex items-center gap-3 hover:shadow-md hover:border-primary/20 transition-all duration-200">
                 <Link href={`/profile/${friend.id}`} className="relative">
                   <Avatar className="h-10 w-10">
                     <AvatarImage src={friend.avatar_url || undefined} alt={friend.display_name || friend.username} />
@@ -220,7 +220,7 @@ export function FriendsTabsClient({ initialFriends, initialRequests }: FriendsTa
             <p className="text-muted-foreground text-center py-8">No pending requests</p>
           ) : (
             optimisticRequests.map((req) => (
-              <Card key={req.id} className="p-4 flex items-center gap-3">
+              <Card key={req.id} className="p-4 flex items-center gap-3 hover:shadow-md hover:border-primary/20 transition-all duration-200">
                 <Avatar className="h-10 w-10">
                   <AvatarImage src={req.requester.avatar_url || undefined} alt={req.requester.display_name || req.requester.username} />
                   <AvatarFallback className="bg-primary text-primary-foreground">
