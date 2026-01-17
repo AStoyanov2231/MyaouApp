@@ -169,14 +169,13 @@ export default function OnboardingPage() {
 
       if (!res.ok) {
         setInterestError(data.error || "Failed to complete onboarding");
-        setCompleting(false);
         return;
       }
 
-      // Redirect immediately
       router.push("/places");
     } catch {
       setInterestError("Something went wrong. Please try again.");
+    } finally {
       setCompleting(false);
     }
   };
