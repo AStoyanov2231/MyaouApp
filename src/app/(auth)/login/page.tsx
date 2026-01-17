@@ -16,6 +16,27 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   const [oauthLoading, setOauthLoading] = useState<"apple" | "google" | null>(null);
   const [emailNotConfirmed, setEmailNotConfirmed] = useState(false);
+  const [devLoading, setDevLoading] = useState(false);
+
+  const isDev = process.env.NODE_ENV === "development";
+
+  async function handleDevLogin() {
+    setDevLoading(true);
+    setError("");
+    try {
+      const res = await fetch("/api/dev/auto-login", { method: "POST" });
+      const data = await res.json();
+      if (data.error) {
+        setError(data.error);
+        setDevLoading(false);
+      } else if (data.redirectUrl) {
+        window.location.href = data.redirectUrl;
+      }
+    } catch {
+      setError("Dev login failed");
+      setDevLoading(false);
+    }
+  }
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -57,7 +78,7 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen bg-primary flex items-center justify-center p-4">
+    <div className="h-full overflow-y-auto scroll-container bg-primary flex items-center justify-center p-4">
       <div className="w-full max-w-md">
         {emailNotConfirmed ? (
           /* Email Confirmation Prompt */
@@ -167,6 +188,26 @@ export default function LoginPage() {
                 Sign Up
               </Link>
             </p>
+
+            {/* Dev Login - only in development */}
+            {isDev && (
+              <div className="mt-6 pt-6 border-t border-white/20">
+                <Button
+                  type="button"
+                  onClick={handleDevLogin}
+                  disabled={devLoading}
+                  variant="outline"
+                  className="w-full rounded-full border-dashed border-yellow-500/50 bg-yellow-500/10 hover:bg-yellow-500/20 text-yellow-400 font-medium h-10 text-sm"
+                >
+                  {devLoading ? (
+                    <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                  ) : (
+                    <span className="mr-2">🔧</span>
+                  )}
+                  Dev Login (localhost only)
+                </Button>
+              </div>
+            )}
           </>
         )}
       </div>

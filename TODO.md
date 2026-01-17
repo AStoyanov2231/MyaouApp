@@ -71,3 +71,9 @@ Your code looks clean - I don't see anything that would cause duplicate email se
   3. Consider adding email validation or stricter rate limiting for production
 
   Want me to help you set up Resend as your SMTP provider? It takes about 5 minutes and completely solves this problem by giving you your own email reputation separate from Supabase's shared infrastructure.
+
+   What's happening in your code:
+  At actions.ts:123-129, you check for "already registered" error, but Supabase often doesn't return this error explicitly - it pretends signup worked but skips sending the email (to not
+   reveal whether an email exists).
+
+  Would you like me to improve the signup flow to better detect and handle this case?

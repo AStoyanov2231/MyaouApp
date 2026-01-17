@@ -18,7 +18,7 @@ export default async function MainLayout({ children }: { children: React.ReactNo
     <PreloadProvider>
       <UnreadMessagesProvider>
         <SplashScreen />
-        <div className="min-h-screen bg-muted flex overflow-hidden">
+        <div className="h-screen-safe bg-muted flex overflow-hidden">
           <Sidebar />
           <main className="flex-1 pb-16 md:pb-0 overflow-y-auto scroll-container">{children}</main>
           <MobileNav />

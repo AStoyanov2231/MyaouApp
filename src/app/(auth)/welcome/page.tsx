@@ -59,7 +59,7 @@ export default function WelcomePage() {
   }
 
   return (
-    <div className="min-h-screen bg-primary flex items-center justify-center p-4 relative overflow-hidden">
+    <div className="h-full overflow-y-auto scroll-container bg-primary flex items-center justify-center p-4 relative">
       {/* Decorative Circles */}
       <div className="absolute top-20 left-1/2 -translate-x-16">
         <div className="relative">

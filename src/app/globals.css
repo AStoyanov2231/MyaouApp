@@ -211,12 +211,16 @@ body {
     @apply border-border;
   }
 
-  html, body {
-    /* Prevent overscroll bounce on iOS/Android */
-    overscroll-behavior: none;
+  html {
+    height: 100%;
+    overflow: hidden;
   }
 
   body {
+    height: 100%;
+    overflow: hidden;
+    /* Prevent overscroll bounce on iOS/Android */
+    overscroll-behavior: none;
     @apply bg-background text-foreground;
   }
 }

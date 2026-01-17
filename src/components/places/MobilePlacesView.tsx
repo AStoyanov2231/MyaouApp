@@ -69,7 +69,7 @@ export function MobilePlacesView({
   };
 
   return (
-    <div className="relative h-[calc(100vh-4rem)] w-full overflow-hidden">
+    <div className="relative h-full w-full overflow-hidden">
       {/* Full-screen map as base layer */}
       <div className="absolute inset-0 z-0">
         {locationPermission === false ? (

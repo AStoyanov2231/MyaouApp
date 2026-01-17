@@ -200,7 +200,7 @@ export default function OnboardingPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-primary via-primary to-primary/90 flex items-center justify-center p-4 relative overflow-hidden">
+    <div className="h-full overflow-y-auto scroll-container bg-gradient-to-br from-primary via-primary to-primary/90 flex items-center justify-center p-4 relative">
       {/* Animated background decorations */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <div className="absolute top-10 left-10 w-32 h-32 bg-accent/20 rounded-full blur-3xl animate-pulse" />
@@ -314,7 +314,7 @@ export default function OnboardingPage() {
               : "opacity-0 translate-x-full absolute"
           )}
         >
-          <div className="bg-white/10 backdrop-blur-lg rounded-3xl p-6 md:p-8 shadow-2xl max-h-[80vh] overflow-hidden flex flex-col">
+          <div className="bg-white/10 backdrop-blur-lg rounded-3xl p-6 md:p-8 shadow-2xl max-h-[calc(100dvh-8rem)] md:max-h-[80dvh] overflow-hidden flex flex-col">
             <div className="text-center mb-6">
               <h1 className="text-2xl md:text-3xl font-bold text-white mb-2">
                 Pick your interests!
