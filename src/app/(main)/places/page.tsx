@@ -1,22 +1,20 @@
 "use client";
 import { useEffect, useState } from "react";
-import { usePlacesAutocomplete } from "@/hooks/usePlacesAutocomplete";
+import { useNearbyPlaces } from "@/hooks/useNearbyPlaces";
 import { Place } from "@/types/database";
-import { AutocompletePrediction } from "@/types/google-places";
 import { MapContainer } from "@/components/places/MapContainer";
-import { FloatingOverlay } from "@/components/places/FloatingOverlay";
 import { MobilePlacesView } from "@/components/places/MobilePlacesView";
-import { PlacesPanel } from "@/components/places/PlacesPanel";
+import { DetailsView } from "@/components/places/DetailsView";
+import { Loader2 } from "lucide-react";
 
 export default function PlacesPage() {
-  const { suggestions, loading, fetchSuggestions, fetchPlaceDetails, resetSession } = usePlacesAutocomplete();
-  const [query, setQuery] = useState("");
   const [selectedPlace, setSelectedPlace] = useState<Place | null>(null);
-  const [overlayMode, setOverlayMode] = useState<"search" | "loading" | "details">("search");
-  const [mapCenter, setMapCenter] = useState<[number, number]>([37.7749, -122.4194]);
   const [userLocation, setUserLocation] = useState<[number, number] | null>(null);
   const [locationPermission, setLocationPermission] = useState<boolean | null>(null);
   const [isDesktop, setIsDesktop] = useState(false);
+
+  // Fetch nearby places based on user location (50m radius)
+  const { places: nearbyPlaces, loading, refetch } = useNearbyPlaces(userLocation, { radius: 50 });
 
   // Detect desktop to conditionally render map (prevents Leaflet errors on mobile)
   useEffect(() => {
@@ -25,16 +23,6 @@ export default function PlacesPage() {
     window.addEventListener("resize", checkDesktop);
     return () => window.removeEventListener("resize", checkDesktop);
   }, []);
-
-  // Debounced autocomplete
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      if (query.length >= 2) {
-        fetchSuggestions(query, userLocation?.[0], userLocation?.[1]);
-      }
-    }, 300);
-    return () => clearTimeout(timer);
-  }, [query, fetchSuggestions, userLocation]);
 
   // Request geolocation on mount
   useEffect(() => {
@@ -46,36 +34,28 @@ export default function PlacesPage() {
             position.coords.longitude,
           ];
           setUserLocation(coords);
-          setMapCenter(coords);
           setLocationPermission(true);
         },
         () => {
           setLocationPermission(false);
         }
       );
+    } else {
+      setLocationPermission(false);
     }
   }, []);
 
-  const handleSuggestionClick = async (prediction: AutocompletePrediction) => {
-    setSelectedPlace(null); // Clear old marker before loading new place
-    setOverlayMode("loading");
-    const place = await fetchPlaceDetails(prediction.place_id);
-    if (place) {
-      setSelectedPlace(place);
-      setOverlayMode("details");
-      // Center map on selected place
-      if (place.latitude && place.longitude) {
-        setMapCenter([place.latitude, place.longitude]);
-      }
-    } else {
-      // Error fetching details, go back to search
-      setOverlayMode("search");
+  const [mapCenter, setMapCenter] = useState<[number, number] | null>(null);
+
+  // Update map center when user location is available
+  useEffect(() => {
+    if (userLocation && !mapCenter) {
+      setMapCenter(userLocation);
     }
-  };
+  }, [userLocation, mapCenter]);
 
   const handlePlaceSelect = (place: Place) => {
     setSelectedPlace(place);
-    setOverlayMode("details");
     // Center map on selected place
     if (place.latitude && place.longitude) {
       setMapCenter([place.latitude, place.longitude]);
@@ -84,60 +64,71 @@ export default function PlacesPage() {
 
   const handleBack = () => {
     setSelectedPlace(null);
-    setOverlayMode("search");
-    resetSession();
+    // Re-center on user location
+    if (userLocation) {
+      setMapCenter(userLocation);
+    }
   };
 
-  // No markers on map - only selectedPlace marker renders via MapView
-  const displayPlaces: Place[] = [];
+  // Show enable location message if no permission or still waiting
+  const showLocationPrompt = locationPermission === false || (!userLocation && locationPermission === null);
 
   return (
     <>
-      {/* Desktop View: Map + Overlay (conditionally rendered to prevent Leaflet errors) */}
+      {/* Desktop View: Map with bubble markers */}
       {isDesktop && (
         <div className="flex flex-1 relative h-screen">
-          {locationPermission === false ? (
-            <div className="w-full h-full flex items-center justify-center bg-muted">
-              <p className="text-muted-foreground font-medium">Enable location</p>
+          {showLocationPrompt || !mapCenter ? (
+            <div className="w-full h-full flex flex-col items-center justify-center bg-muted gap-4">
+              {locationPermission === null ? (
+                <>
+                  <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                  <p className="text-muted-foreground font-medium">Requesting location...</p>
+                </>
+              ) : (
+                <>
+                  <p className="text-muted-foreground font-medium text-lg">Enable location to see nearby places</p>
+                  <p className="text-muted-foreground text-sm">We need your location to show places around you</p>
+                </>
+              )}
             </div>
           ) : (
             <MapContainer
-              places={displayPlaces}
+              places={nearbyPlaces}
               center={mapCenter}
-              zoom={13}
+              zoom={18}
               selectedPlace={selectedPlace}
               onMarkerClick={handlePlaceSelect}
               userLocation={userLocation}
             />
           )}
-          <FloatingOverlay
-            mode={overlayMode}
-            selectedPlace={selectedPlace}
-            query={query}
-            onQueryChange={setQuery}
-            suggestions={suggestions}
-            loading={loading}
-            onSuggestionClick={handleSuggestionClick}
-            onBack={handleBack}
-          />
-          <PlacesPanel />
+
+          {/* Loading indicator */}
+          {loading && mapCenter && (
+            <div className="absolute top-4 left-1/2 -translate-x-1/2 z-20 bg-background/90 backdrop-blur-sm px-4 py-2 rounded-full shadow-lg flex items-center gap-2">
+              <Loader2 className="h-4 w-4 animate-spin text-primary" />
+              <span className="text-sm text-muted-foreground">Finding nearby places...</span>
+            </div>
+          )}
+
+          {/* Details panel when place selected */}
+          {selectedPlace && (
+            <div className="absolute right-4 top-4 bottom-4 w-96 z-20">
+              <DetailsView place={selectedPlace} onBack={handleBack} />
+            </div>
+          )}
         </div>
       )}
 
-      {/* Mobile View: Google Maps style with full-screen map */}
+      {/* Mobile View: Full-screen map with bubble markers */}
       {!isDesktop && (
         <MobilePlacesView
-          query={query}
-          onQueryChange={setQuery}
-          suggestions={suggestions}
-          loading={loading}
           selectedPlace={selectedPlace}
           mapCenter={mapCenter}
-          displayPlaces={displayPlaces}
-          onSuggestionClick={handleSuggestionClick}
+          nearbyPlaces={nearbyPlaces}
+          loading={loading}
           onPlaceSelect={handlePlaceSelect}
           onBack={handleBack}
-          overlayMode={overlayMode}
           userLocation={userLocation}
           locationPermission={locationPermission}
         />
