@@ -47,7 +47,7 @@ export default function PlaceChatPage({ params }: { params: Promise<{ placeId: s
 
   if (!place) {
     return (
-      <div className="flex flex-col h-screen-safe md:h-screen">
+      <div className="fixed inset-0 flex flex-col bg-background">
         <div className="bg-card border-b p-4 pt-[calc(1rem+var(--safe-area-top))] md:pt-4 flex items-center gap-4">
           <Skeleton className="h-6 w-32" />
         </div>
@@ -59,8 +59,8 @@ export default function PlaceChatPage({ params }: { params: Promise<{ placeId: s
   }
 
   return (
-    <div className="flex flex-col h-screen-safe md:h-screen">
-      <header className="bg-card border-b p-4 pt-[calc(1rem+var(--safe-area-top))] md:pt-4 flex items-center gap-4 sticky top-0 z-10">
+    <div className="fixed inset-0 flex flex-col bg-background">
+      <header className="bg-card border-b p-4 pt-[calc(1rem+var(--safe-area-top))] md:pt-4 flex items-center gap-4 z-10 flex-shrink-0">
         <Link href="/messages" className="md:hidden">
           <ArrowLeft />
         </Link>
@@ -72,7 +72,7 @@ export default function PlaceChatPage({ params }: { params: Promise<{ placeId: s
         </div>
       </header>
 
-      <div className="flex-1 overflow-y-auto p-4 space-y-4 scroll-container">
+      <div className="flex-1 overflow-y-auto p-4 space-y-4 scroll-container overscroll-contain">
         {loading ? (
           <div className="flex justify-center">
             <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -116,7 +116,7 @@ export default function PlaceChatPage({ params }: { params: Promise<{ placeId: s
         <div ref={messagesEndRef} />
       </div>
 
-      <form onSubmit={handleSend} className="p-3 pb-[calc(0.75rem+var(--safe-area-bottom))] md:pb-3 flex items-center gap-3">
+      <form onSubmit={handleSend} className="p-3 pb-[calc(0.75rem+var(--safe-area-bottom))] md:pb-3 flex items-center gap-3 bg-card/80 backdrop-blur-sm border-t flex-shrink-0">
         <Input
           value={input}
           onChange={(e) => setInput(e.target.value)}

@@ -175,7 +175,7 @@ export default function DMConversationPage({ params }: { params: Promise<{ threa
 
   if (loading || !thread) {
     return (
-      <div className={cn("flex flex-col md:h-screen", isKeyboardVisible ? "h-[100dvh]" : "h-screen-safe")}>
+      <div className="fixed inset-0 flex flex-col bg-background">
         <div className="bg-card border-b p-4 pt-[calc(1rem+var(--safe-area-top))] md:pt-4 flex items-center gap-4">
           <Skeleton className="h-8 w-8 rounded-full" />
           <div className="space-y-2">
@@ -193,8 +193,8 @@ export default function DMConversationPage({ params }: { params: Promise<{ threa
   const other = thread.participant_1_id === user?.id ? thread.participant_2 : thread.participant_1;
 
   return (
-    <div className={cn("flex flex-col md:h-screen", isKeyboardVisible ? "h-[100dvh]" : "h-screen-safe")}>
-      <header className="bg-card border-b p-4 pt-[calc(1rem+var(--safe-area-top))] md:pt-4 flex items-center gap-4 sticky top-0 z-10">
+    <div className="fixed inset-0 flex flex-col bg-background">
+      <header className="bg-card border-b p-4 pt-[calc(1rem+var(--safe-area-top))] md:pt-4 flex items-center gap-4 z-10 flex-shrink-0">
         <Link href="/messages" className="md:hidden">
           <ArrowLeft />
         </Link>
@@ -224,7 +224,7 @@ export default function DMConversationPage({ params }: { params: Promise<{ threa
         </div>
       </header>
 
-      <div className="flex-1 overflow-y-auto p-4 space-y-4 scroll-container">
+      <div className="flex-1 overflow-y-auto p-4 space-y-4 scroll-container overscroll-contain">
         {messages.map((msg) => {
           const isOwn = msg.sender_id === user?.id;
           const isEditing = editingMessageId === msg.id;
@@ -346,7 +346,7 @@ export default function DMConversationPage({ params }: { params: Promise<{ threa
         <div ref={messagesEndRef} />
       </div>
 
-      <form onSubmit={handleSend} className="p-3 pb-[calc(0.75rem+var(--safe-area-bottom))] md:pb-3 flex items-center gap-3">
+      <form onSubmit={handleSend} className="p-3 pb-[calc(0.75rem+var(--safe-area-bottom))] md:pb-3 flex items-center gap-3 bg-card/80 backdrop-blur-sm border-t flex-shrink-0">
         <Input
           value={input}
           onChange={(e) => setInput(e.target.value)}
