@@ -1,6 +1,6 @@
 "use client";
-import { useEffect, useState, useRef, use } from "react";
-import { ArrowLeft, Send, Loader2, MoreVertical, Pencil, Trash2, X, Check } from "lucide-react";
+import { useEffect, useState, useRef, use, useCallback } from "react";
+import { ArrowLeft, Send, Loader2, MoreVertical, Pencil, Trash2, X, Check, ChevronDown } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -38,6 +38,8 @@ export default function DMConversationPage({ params }: { params: Promise<{ threa
   const [editContent, setEditContent] = useState("");
   const [menuOpenId, setMenuOpenId] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const messagesContainerRef = useRef<HTMLDivElement>(null);
+  const [showScrollButton, setShowScrollButton] = useState(false);
 
   // Read messages from store (updated by global useRealtimeSync)
   const storeMessages = useThreadMessages(threadId);
@@ -101,6 +103,19 @@ export default function DMConversationPage({ params }: { params: Promise<{ threa
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
+
+  const handleScroll = useCallback(() => {
+    const container = messagesContainerRef.current;
+    if (!container) return;
+
+    const { scrollTop, scrollHeight, clientHeight } = container;
+    const distanceFromBottom = scrollHeight - scrollTop - clientHeight;
+    setShowScrollButton(distanceFromBottom > 100);
+  }, []);
+
+  const scrollToBottom = useCallback(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, []);
 
   const handleSend = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -224,8 +239,13 @@ export default function DMConversationPage({ params }: { params: Promise<{ threa
         </div>
       </header>
 
-      <div className="flex-1 overflow-y-auto p-4 space-y-4 scroll-container overscroll-contain">
-        {messages.map((msg) => {
+      <div className="relative flex-1">
+        <div
+          ref={messagesContainerRef}
+          onScroll={handleScroll}
+          className="absolute inset-0 overflow-y-auto p-4 space-y-4 scroll-container overscroll-contain"
+        >
+          {messages.map((msg) => {
           const isOwn = msg.sender_id === user?.id;
           const isEditing = editingMessageId === msg.id;
           const showMenu = menuOpenId === msg.id;
@@ -344,6 +364,18 @@ export default function DMConversationPage({ params }: { params: Promise<{ threa
           );
         })}
         <div ref={messagesEndRef} />
+      </div>
+
+        {/* Scroll to bottom button */}
+        {showScrollButton && (
+          <button
+            onClick={scrollToBottom}
+            className="absolute bottom-4 right-4 h-10 w-10 rounded-full glass shadow-soft flex items-center justify-center hover:bg-background/90 transition-all duration-200"
+            aria-label="Scroll to bottom"
+          >
+            <ChevronDown className="h-5 w-5 text-muted-foreground" />
+          </button>
+        )}
       </div>
 
       <form onSubmit={handleSend} className="p-3 pb-[calc(0.75rem+var(--safe-area-bottom))] md:pb-3 flex items-center gap-3 bg-card/80 backdrop-blur-sm border-t flex-shrink-0">

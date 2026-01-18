@@ -103,21 +103,12 @@ export default function MessagesPage() {
                     </div>
                   ) : null}
                 </div>
+                {/* Column 2: Name + Message */}
                 <div className="flex-1 min-w-0">
-                  <div className="flex justify-between items-baseline mb-1">
-                    <p className={cn(
-                      "text-lg truncate",
-                      thread.unread_count ? "font-bold" : "font-semibold"
-                    )}>{name}</p>
-                    {thread.last_message_at && (
-                      <span className={cn(
-                        "text-xs font-semibold ml-2 flex-shrink-0",
-                        thread.unread_count ? "text-accent" : "text-muted-foreground"
-                      )}>
-                        {formatDistanceToNow(new Date(thread.last_message_at), { addSuffix: false })}
-                      </span>
-                    )}
-                  </div>
+                  <p className={cn(
+                    "text-lg truncate mb-0.5",
+                    thread.unread_count ? "font-bold" : "font-semibold"
+                  )}>{name}</p>
                   {thread.last_message_preview && (
                     <p className={cn(
                       "text-sm truncate",
@@ -125,6 +116,18 @@ export default function MessagesPage() {
                     )}>{thread.last_message_preview}</p>
                   )}
                 </div>
+
+                {/* Column 3: Timestamp */}
+                {thread.last_message_at && (
+                  <div className="flex-shrink-0 self-start pt-0.5">
+                    <span className={cn(
+                      "text-xs font-semibold",
+                      thread.unread_count ? "text-accent" : "text-muted-foreground"
+                    )}>
+                      {formatDistanceToNow(new Date(thread.last_message_at), { addSuffix: false })}
+                    </span>
+                  </div>
+                )}
               </Link>
             );
           })}
