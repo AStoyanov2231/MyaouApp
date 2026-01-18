@@ -44,7 +44,7 @@ export default function MessagesPage() {
         <Skeleton className="h-10 w-40 mb-6" />
         <div className="space-y-4">
           {[1, 2, 3].map((i) => (
-            <Skeleton key={i} className="h-24 w-full rounded-3xl" />
+            <Skeleton key={i} className="h-[72px] w-full rounded-[1.5rem]" />
           ))}
         </div>
       </div>
@@ -73,22 +73,22 @@ export default function MessagesPage() {
                 key={thread.id}
                 href={href}
                 className={cn(
-                  "glass p-4 rounded-3xl shadow-soft flex items-center gap-4 relative overflow-hidden block",
+                  "glass py-3 px-4 rounded-[1.5rem] shadow-soft flex items-center gap-4 relative overflow-hidden block",
                   thread.unread_count && "ring-1 ring-accent/30"
                 )}
               >
                 {/* Unread accent bar */}
                 {thread.unread_count ? (
-                  <div className="absolute left-0 top-0 bottom-0 w-1.5 bg-accent" />
+                  <div className="absolute left-0 top-0 bottom-0 w-1.5 bg-accent rounded-l-[1.5rem]" />
                 ) : null}
 
                 <div className="relative flex-shrink-0">
                   {isPlace ? (
-                    <div className="h-14 w-14 rounded-2xl bg-primary/10 flex items-center justify-center">
-                      <MapPin className="text-primary h-6 w-6" />
+                    <div className="h-12 w-12 rounded-xl bg-primary/10 flex items-center justify-center">
+                      <MapPin className="text-primary h-5 w-5" />
                     </div>
                   ) : (
-                    <Avatar className="h-14 w-14 border-2 border-white dark:border-border shadow-sm">
+                    <Avatar className="h-12 w-12 border-2 border-white dark:border-border shadow-sm">
                       <AvatarImage src={avatarSrc || undefined} alt={name} />
                       <AvatarFallback className="bg-primary text-primary-foreground">
                         {getInitials(name)}
@@ -96,8 +96,8 @@ export default function MessagesPage() {
                     </Avatar>
                   )}
                   {thread.unread_count ? (
-                    <div className="absolute -top-1 -right-1 h-5 w-5 bg-accent rounded-full flex items-center justify-center shadow-sm">
-                      <span className="text-[10px] font-bold text-accent-foreground">
+                    <div className="absolute -top-1 -right-1 h-4 w-4 bg-accent rounded-full flex items-center justify-center shadow-sm">
+                      <span className="text-[9px] font-bold text-accent-foreground">
                         {thread.unread_count > 9 ? "9+" : thread.unread_count}
                       </span>
                     </div>

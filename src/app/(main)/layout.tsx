@@ -20,7 +20,7 @@ export default async function MainLayout({ children }: { children: React.ReactNo
         <SplashScreen />
         <div className="h-screen-safe bg-muted flex overflow-hidden">
           <Sidebar />
-          <main className="flex-1 overflow-y-auto scroll-container">{children}</main>
+          <main className="flex-1 overflow-y-auto scroll-container pb-[calc(var(--mobile-nav-height)+var(--safe-area-bottom))] md:pb-0">{children}</main>
           <MobileNav />
         </div>
       </UnreadMessagesProvider>

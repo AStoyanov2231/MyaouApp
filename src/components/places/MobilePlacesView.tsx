@@ -33,7 +33,7 @@ export function MobilePlacesView({
   const showLocationPrompt = locationPermission === false || !mapCenter;
 
   return (
-    <div className="relative h-full w-full overflow-hidden">
+    <div className="fixed inset-0 overflow-hidden">
       {/* Full-screen map with bubble markers */}
       <div className="absolute inset-0 z-0">
         {showLocationPrompt ? (
