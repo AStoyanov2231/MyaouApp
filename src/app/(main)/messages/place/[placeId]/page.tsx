@@ -62,7 +62,7 @@ export default function PlaceChatPage({ params }: { params: Promise<{ placeId: s
 
   if (!place) {
     return (
-      <div className="fixed inset-0 flex flex-col bg-background">
+      <div className="fixed inset-0 md:relative md:inset-auto md:h-full flex flex-col bg-background">
         <div className="bg-card border-b p-4 pt-[calc(1rem+var(--safe-area-top))] md:pt-4 flex items-center gap-4">
           <Skeleton className="h-6 w-32" />
         </div>
@@ -74,7 +74,7 @@ export default function PlaceChatPage({ params }: { params: Promise<{ placeId: s
   }
 
   return (
-    <div className="fixed inset-0 flex flex-col bg-background">
+    <div className="fixed inset-0 md:relative md:inset-auto md:h-full flex flex-col bg-background">
       <header className="bg-card border-b p-4 pt-[calc(1rem+var(--safe-area-top))] md:pt-4 flex items-center gap-4 z-10 flex-shrink-0">
         <Link href="/messages" className="md:hidden">
           <ArrowLeft />

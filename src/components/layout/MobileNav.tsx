@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { useUnreadMessagesContext } from "@/contexts/UnreadMessagesContext";
 import { useKeyboardVisible } from "@/hooks/useKeyboardVisible";
+import { useAppStore } from "@/stores/appStore";
 
 const navItems = [
   { href: "/places", icon: MapPin, label: "Places" },
@@ -18,10 +19,11 @@ export function MobileNav() {
   const pathname = usePathname();
   const { unreadCount } = useUnreadMessagesContext();
   const isKeyboardVisible = useKeyboardVisible();
+  const isPlaceDetailOpen = useAppStore((s) => s.isPlaceDetailOpen);
 
-  // Hide nav when keyboard is open or in a chat conversation
+  // Hide nav when keyboard is open, in a chat conversation, or place detail panel is open
   const isInChat = pathname.startsWith("/messages/");
-  if (isKeyboardVisible || isInChat) return null;
+  if (isKeyboardVisible || isInChat || isPlaceDetailOpen) return null;
 
   return (
     <nav className="md:hidden fixed bottom-4 left-4 right-4 glass border-0 flex rounded-3xl shadow-[0_4px_20px_rgba(0,0,0,0.08)] z-50">

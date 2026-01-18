@@ -84,7 +84,7 @@ export default function MessagesPage() {
                 key={thread.id}
                 href={href}
                 className={cn(
-                  "glass py-3 px-4 rounded-[1.5rem] shadow-soft flex items-center gap-4 relative overflow-hidden block",
+                  "glass py-3 px-4 rounded-[1.5rem] shadow-soft flex items-center gap-4 relative overflow-hidden",
                   thread.unread_count && "ring-1 ring-accent/30"
                 )}
               >

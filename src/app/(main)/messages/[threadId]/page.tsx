@@ -190,7 +190,7 @@ export default function DMConversationPage({ params }: { params: Promise<{ threa
 
   if (loading || !thread) {
     return (
-      <div className="fixed inset-0 flex flex-col bg-background">
+      <div className="fixed inset-0 md:relative md:inset-auto md:h-full flex flex-col bg-background">
         <div className="bg-card border-b p-4 pt-[calc(1rem+var(--safe-area-top))] md:pt-4 flex items-center gap-4">
           <Skeleton className="h-8 w-8 rounded-full" />
           <div className="space-y-2">
@@ -208,7 +208,7 @@ export default function DMConversationPage({ params }: { params: Promise<{ threa
   const other = thread.participant_1_id === user?.id ? thread.participant_2 : thread.participant_1;
 
   return (
-    <div className="fixed inset-0 flex flex-col bg-background">
+    <div className="fixed inset-0 md:relative md:inset-auto md:h-full flex flex-col bg-background">
       <header className="bg-card border-b p-4 pt-[calc(1rem+var(--safe-area-top))] md:pt-4 flex items-center gap-4 z-10 flex-shrink-0">
         <Link href="/messages" className="md:hidden">
           <ArrowLeft />

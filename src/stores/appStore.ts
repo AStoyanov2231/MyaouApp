@@ -122,6 +122,10 @@ interface AppState {
   // Presence actions
   onlineUsers: Set<string>;
   setOnlineUsers: (userIds: string[]) => void;
+
+  // UI state
+  isPlaceDetailOpen: boolean;
+  setPlaceDetailOpen: (open: boolean) => void;
 }
 
 const initialStats: ProfileStats = {
@@ -145,6 +149,7 @@ export const useAppStore = create<AppState>((set, get) => ({
   currentPlace: null,
   activeThreadId: null,
   onlineUsers: new Set<string>(),
+  isPlaceDetailOpen: false,
   isPreloading: false,
   preloadError: null,
   isProfileLoaded: false,
@@ -219,6 +224,7 @@ export const useAppStore = create<AppState>((set, get) => ({
       currentPlace: null,
       activeThreadId: null,
       onlineUsers: new Set<string>(),
+      isPlaceDetailOpen: false,
       isPreloading: false,
       preloadError: null,
       isProfileLoaded: false,
@@ -304,4 +310,7 @@ export const useAppStore = create<AppState>((set, get) => ({
 
   // Presence actions
   setOnlineUsers: (userIds) => set({ onlineUsers: new Set(userIds) }),
+
+  // UI state actions
+  setPlaceDetailOpen: (open) => set({ isPlaceDetailOpen: open }),
 }));

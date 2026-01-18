@@ -1,8 +1,10 @@
 "use client";
 
+import { useEffect } from "react";
 import { Loader2 } from "lucide-react";
 
 import { Place } from "@/types/database";
+import { useAppStore } from "@/stores/appStore";
 
 import { MapContainer } from "./MapContainer";
 import { MobileBottomPanel } from "./MobileBottomPanel";
@@ -30,6 +32,15 @@ export function MobilePlacesView({
   locationPermission,
   searchRadius = 50,
 }: MobilePlacesViewProps) {
+  // Update store when place panel is shown/hidden (for MobileNav to hide)
+  useEffect(() => {
+    useAppStore.getState().setPlaceDetailOpen(!!selectedPlace);
+
+    return () => {
+      useAppStore.getState().setPlaceDetailOpen(false);
+    };
+  }, [selectedPlace]);
+
   const showLocationPrompt = locationPermission === false || !mapCenter;
 
   return (
