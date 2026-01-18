@@ -38,7 +38,7 @@ export default async function FriendsPage() {
 
   return (
     <div className="max-w-2xl mx-auto p-4">
-      <h1 className="text-2xl font-bold mb-4">Friends</h1>
+      <h1 className="text-3xl font-extrabold tracking-tight mb-6">Friends</h1>
       <FriendsTabsClient
         initialFriends={friends}
         initialRequests={requests}

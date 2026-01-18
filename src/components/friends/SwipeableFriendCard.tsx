@@ -158,7 +158,7 @@ export function SwipeableFriendCard({
   return (
     <div
       ref={containerRef}
-      className="relative overflow-hidden rounded-xl"
+      className="relative overflow-hidden rounded-2xl"
       onTouchStart={handleTouchStart}
       onTouchMove={handleTouchMove}
       onTouchEnd={handleTouchEnd}

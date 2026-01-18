@@ -4,7 +4,6 @@ import { useSearchParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/useAuth";
 import { useThreads, useIsMessagesLoaded } from "@/stores/selectors";
@@ -42,10 +41,10 @@ export default function MessagesPage() {
   if (!isLoaded) {
     return (
       <div className="max-w-2xl mx-auto p-4">
-        <Skeleton className="h-8 w-32 mb-4" />
-        <div className="space-y-2">
+        <Skeleton className="h-10 w-40 mb-6" />
+        <div className="space-y-4">
           {[1, 2, 3].map((i) => (
-            <Skeleton key={i} className="h-20 w-full rounded-lg" />
+            <Skeleton key={i} className="h-24 w-full rounded-3xl" />
           ))}
         </div>
       </div>
@@ -57,12 +56,12 @@ export default function MessagesPage() {
 
   return (
     <div className="max-w-2xl mx-auto p-4">
-      <h1 className="text-2xl font-bold mb-4">Messages</h1>
+      <h1 className="text-3xl font-extrabold tracking-tight mb-6">Messages</h1>
 
       {threads.length === 0 ? (
         <p className="text-muted-foreground text-center py-8">No conversations yet</p>
       ) : (
-        <div className="space-y-2">
+        <div className="space-y-4">
           {threads.map((thread) => {
             const isPlace = thread.type === "place";
             const href = isPlace ? `/messages/place/${thread.id}` : `/messages/${thread.id}`;
@@ -74,17 +73,22 @@ export default function MessagesPage() {
                 key={thread.id}
                 href={href}
                 className={cn(
-                  "bg-card rounded-lg p-4 flex items-center gap-3 hover:bg-accent/50 block",
-                  thread.unread_count && "border-l-4 border-primary"
+                  "glass p-4 rounded-3xl shadow-soft flex items-center gap-4 relative overflow-hidden block",
+                  thread.unread_count && "ring-1 ring-accent/30"
                 )}
               >
-                <div className="relative">
+                {/* Unread accent bar */}
+                {thread.unread_count ? (
+                  <div className="absolute left-0 top-0 bottom-0 w-1.5 bg-accent" />
+                ) : null}
+
+                <div className="relative flex-shrink-0">
                   {isPlace ? (
-                    <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
-                      <MapPin className="text-primary h-5 w-5" />
+                    <div className="h-14 w-14 rounded-2xl bg-primary/10 flex items-center justify-center">
+                      <MapPin className="text-primary h-6 w-6" />
                     </div>
                   ) : (
-                    <Avatar className="h-10 w-10">
+                    <Avatar className="h-14 w-14 border-2 border-white dark:border-border shadow-sm">
                       <AvatarImage src={avatarSrc || undefined} alt={name} />
                       <AvatarFallback className="bg-primary text-primary-foreground">
                         {getInitials(name)}
@@ -92,28 +96,33 @@ export default function MessagesPage() {
                     </Avatar>
                   )}
                   {thread.unread_count ? (
-                    <Badge className="absolute -top-1 -right-1 h-5 w-5 p-0 flex items-center justify-center rounded-full text-xs">
-                      {thread.unread_count > 9 ? "9+" : thread.unread_count}
-                    </Badge>
+                    <div className="absolute -top-1 -right-1 h-5 w-5 bg-accent rounded-full flex items-center justify-center shadow-sm">
+                      <span className="text-[10px] font-bold text-accent-foreground">
+                        {thread.unread_count > 9 ? "9+" : thread.unread_count}
+                      </span>
+                    </div>
                   ) : null}
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className={cn("font-medium", thread.unread_count && "font-bold")}>{name}</p>
+                  <div className="flex justify-between items-baseline mb-1">
+                    <p className={cn(
+                      "text-lg truncate",
+                      thread.unread_count ? "font-bold" : "font-semibold"
+                    )}>{name}</p>
+                    {thread.last_message_at && (
+                      <span className={cn(
+                        "text-xs font-semibold ml-2 flex-shrink-0",
+                        thread.unread_count ? "text-accent" : "text-muted-foreground"
+                      )}>
+                        {formatDistanceToNow(new Date(thread.last_message_at), { addSuffix: false })}
+                      </span>
+                    )}
+                  </div>
                   {thread.last_message_preview && (
                     <p className={cn(
                       "text-sm truncate",
                       thread.unread_count ? "text-foreground font-medium" : "text-muted-foreground"
                     )}>{thread.last_message_preview}</p>
-                  )}
-                </div>
-                <div className="flex flex-col items-end gap-1">
-                  {thread.last_message_at && (
-                    <span className={cn(
-                      "text-xs",
-                      thread.unread_count ? "text-primary font-medium" : "text-muted-foreground"
-                    )}>
-                      {formatDistanceToNow(new Date(thread.last_message_at), { addSuffix: true })}
-                    </span>
                   )}
                 </div>
               </Link>

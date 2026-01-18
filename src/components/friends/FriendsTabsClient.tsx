@@ -180,13 +180,23 @@ export function FriendsTabsClient({ initialFriends, initialRequests }: FriendsTa
 
   return (
     <Tabs defaultValue="friends" className="w-full">
-      <TabsList className="mb-4">
-        <TabsTrigger value="friends">Friends ({optimisticFriends.length})</TabsTrigger>
-        <TabsTrigger value="requests">Requests ({optimisticRequests.length})</TabsTrigger>
+      <TabsList className="mb-8 w-full bg-card p-1 rounded-2xl shadow-sm h-auto">
+        <TabsTrigger
+          value="friends"
+          className="flex-1 py-2 rounded-xl text-sm font-bold data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-md"
+        >
+          Friends ({optimisticFriends.length})
+        </TabsTrigger>
+        <TabsTrigger
+          value="requests"
+          className="flex-1 py-2 rounded-xl text-sm font-bold data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-md"
+        >
+          Requests ({optimisticRequests.length})
+        </TabsTrigger>
       </TabsList>
 
       <TabsContent value="friends">
-        <div className="space-y-2">
+        <div className="space-y-4">
           {optimisticFriends.length === 0 ? (
             <p className="text-muted-foreground text-center py-8">No friends yet</p>
           ) : (
@@ -200,29 +210,29 @@ export function FriendsTabsClient({ initialFriends, initialRequests }: FriendsTa
                   disabled={isProcessing}
                 >
                   <Card
-                    className="p-4 flex items-center gap-3 hover:bg-accent/50 active:bg-accent/70 transition-colors cursor-pointer select-none border-0 rounded-none"
+                    className="p-4 flex items-center gap-4 shadow-soft hover:scale-[1.02] active:scale-[0.99] transition-transform duration-200 cursor-pointer select-none border-0 dark:border dark:border-border/50"
                     onClick={() => handleOpenChat(friend.id)}
                   >
                     <div className="relative" onClick={(e) => { e.stopPropagation(); }}>
                       <Link href={`/profile/${friend.id}`}>
-                        <Avatar className="h-10 w-10">
+                        <Avatar className="h-14 w-14 border-2 border-primary">
                           <AvatarImage src={friend.avatar_url || undefined} alt={friend.display_name || friend.username} />
                           <AvatarFallback className="bg-primary text-primary-foreground">
                             {getInitials(friend.display_name || friend.username)}
                           </AvatarFallback>
                         </Avatar>
                         {isOnline && (
-                          <div className="absolute bottom-0 right-0 h-3 w-3 bg-green-500 rounded-full border-2 border-card" />
+                          <div className="absolute bottom-0 right-0 h-4 w-4 bg-green-400 rounded-full border-2 border-white dark:border-card" />
                         )}
                       </Link>
                     </div>
                     <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-1.5">
-                        <p className="font-medium">{friend.display_name || friend.username}</p>
+                      <div className="flex items-center gap-2">
+                        <p className="font-bold text-lg">{friend.display_name || friend.username}</p>
                         {friend.is_premium && <PremiumBadge size="sm" />}
                       </div>
                       <p className="text-sm text-muted-foreground">
-                        {isOnline ? <span className="text-green-500">Online</span> : `@${friend.username}`}
+                        {isOnline ? <span className="text-green-500 font-medium">Online</span> : `@${friend.username}`}
                       </p>
                     </div>
                     {isProcessing && (
@@ -262,21 +272,21 @@ export function FriendsTabsClient({ initialFriends, initialRequests }: FriendsTa
       </TabsContent>
 
       <TabsContent value="requests">
-        <div className="space-y-2">
+        <div className="space-y-4">
           {optimisticRequests.length === 0 ? (
             <p className="text-muted-foreground text-center py-8">No pending requests</p>
           ) : (
             optimisticRequests.map((req) => (
-              <Card key={req.id} className="p-4 flex items-center gap-3 hover:shadow-md hover:border-primary/20 transition-all duration-200">
-                <Avatar className="h-10 w-10">
+              <Card key={req.id} className="p-4 flex items-center gap-4 rounded-2xl shadow-soft hover:scale-[1.02] transition-transform duration-200 border-0 dark:border dark:border-border/50">
+                <Avatar className="h-14 w-14 border-2 border-primary">
                   <AvatarImage src={req.requester.avatar_url || undefined} alt={req.requester.display_name || req.requester.username} />
                   <AvatarFallback className="bg-primary text-primary-foreground">
                     {getInitials(req.requester.display_name || req.requester.username)}
                   </AvatarFallback>
                 </Avatar>
                 <div className="flex-1">
-                  <div className="flex items-center gap-1.5">
-                    <p className="font-medium">{req.requester.display_name || req.requester.username}</p>
+                  <div className="flex items-center gap-2">
+                    <p className="font-bold text-lg">{req.requester.display_name || req.requester.username}</p>
                     {req.requester.is_premium && <PremiumBadge size="sm" />}
                   </div>
                   <p className="text-sm text-muted-foreground">@{req.requester.username}</p>
@@ -284,6 +294,7 @@ export function FriendsTabsClient({ initialFriends, initialRequests }: FriendsTa
                 <div className="flex gap-2">
                   <Button
                     size="sm"
+                    aria-label="Accept friend request"
                     onClick={() => handleRequest(req.id, "accepted")}
                     disabled={processingIds.has(req.id)}
                   >
@@ -296,6 +307,7 @@ export function FriendsTabsClient({ initialFriends, initialRequests }: FriendsTa
                   <Button
                     variant="secondary"
                     size="sm"
+                    aria-label="Reject friend request"
                     onClick={() => handleRequest(req.id, "blocked")}
                     disabled={processingIds.has(req.id)}
                   >

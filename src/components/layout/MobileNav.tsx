@@ -23,7 +23,7 @@ export function MobileNav() {
   if (isKeyboardVisible) return null;
 
   return (
-    <nav className="md:hidden fixed bottom-0 left-0 right-0 glass border-t-0 flex pb-[var(--safe-area-bottom)] z-50">
+    <nav className="md:hidden fixed bottom-0 left-0 right-0 glass border-t-0 flex pt-2 pb-[max(1.5rem,var(--safe-area-bottom))] px-6 rounded-t-3xl shadow-[0_-5px_20px_rgba(0,0,0,0.03)] z-50">
       {navItems.map(({ href, icon: Icon, label }) => {
         const isActive = pathname.startsWith(href);
 

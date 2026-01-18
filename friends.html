@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Myaou Friends List</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,typography"></script>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" rel="stylesheet"/>
+<script>
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        primary: "#7C3AED", // A playful purple often used in illustrative styles
+                        secondary: "#F472B6", // A soft pink accent
+                        "background-light": "#F3F4F6", // Very light gray/blueish for light mode background
+                        "background-dark": "#111827", // Dark gray/blue for dark mode background
+                        "surface-light": "#FFFFFF",
+                        "surface-dark": "#1F2937",
+                        "text-light": "#1F2937",
+                        "text-dark": "#F9FAFB",
+                        "subtext-light": "#6B7280",
+                        "subtext-dark": "#9CA3AF",
+                    },
+                    fontFamily: {
+                        display: ["Nunito", "sans-serif"],
+                    },
+                    borderRadius: {
+                        DEFAULT: "1rem", // Soft rounded corners
+                        'xl': '1.5rem',
+                        '2xl': '2rem',
+                    },
+                    boxShadow: {
+                        'soft': '0 4px 20px -2px rgba(0, 0, 0, 0.05)',
+                        'glow': '0 0 15px rgba(124, 58, 237, 0.3)',
+                    }
+                },
+            },
+        };
+    </script>
+<style>
+        body {
+            font-family: 'Nunito', sans-serif;
+        }.no-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .no-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background-light dark:bg-background-dark text-text-light dark:text-text-dark min-h-screen flex flex-col transition-colors duration-300">
+<div class="h-12 w-full flex items-center justify-between px-6 pt-2">
+<span class="text-sm font-bold">15:12</span>
+<div class="flex space-x-2 items-center">
+<span class="material-icons-round text-sm">signal_cellular_alt</span>
+<span class="material-icons-round text-sm">wifi</span>
+<span class="material-icons-round text-sm">battery_full</span>
+</div>
+</div>
+<main class="flex-1 flex flex-col px-5 pt-2 pb-24 overflow-y-auto no-scrollbar">
+<header class="mb-6">
+<h1 class="text-3xl font-extrabold text-gray-900 dark:text-white tracking-tight">Friends</h1>
+</header>
+<div class="bg-white dark:bg-surface-dark p-1 rounded-2xl shadow-sm flex mb-8">
+<button class="flex-1 bg-primary text-white py-2 rounded-xl shadow-md text-sm font-bold transition-all duration-200">
+                Friends (1)
+            </button>
+<button class="flex-1 text-subtext-light dark:text-subtext-dark hover:bg-gray-50 dark:hover:bg-gray-800 py-2 rounded-xl text-sm font-semibold transition-all duration-200">
+                Requests (0)
+            </button>
+</div>
+<div class="space-y-4 relative z-10">
+<div class="bg-surface-light dark:bg-surface-dark p-4 rounded-2xl shadow-soft flex items-center space-x-4 hover:scale-[1.02] transition-transform duration-200 cursor-pointer border border-transparent dark:border-gray-700">
+<div class="relative">
+<img alt="Avatar of Euro Traveler" class="w-14 h-14 rounded-full object-cover border-2 border-primary" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBisstR2JOKKe2rK8omX2dWwQ_iDwgoBinPKYLuZPXKMW_hfFXENeCzhaHKoBkbWQtal8zWceTfOVPBb04nDM7pLWzrUPXw2p8AVWEsw2i2wICyTpby_vWacKuZks5__S0k-Im7Ry8QIPYXZ9McjmH4EU-c8DwhPQlRg2xsmFf7gxUN1rVspgbo-rh0V4BqRI9H4MVzRAUKc-5MLeVrGfu1JedRHsgfUDZh2bTaRg3NwlymjqFXiYJJ-0zckf_RmeqLQl4zIQLC1_Rm"/>
+<div class="absolute bottom-0 right-0 w-4 h-4 bg-green-400 border-2 border-white dark:border-surface-dark rounded-full"></div>
+</div>
+<div class="flex-1">
+<div class="flex items-center space-x-2">
+<h3 class="font-bold text-lg text-gray-800 dark:text-white">Euro Traveler</h3>
+<span class="material-icons-round text-yellow-400 text-base" title="Premium Member">workspace_premium</span>
+</div>
+<p class="text-sm text-subtext-light dark:text-subtext-dark">@probook12</p>
+</div>
+<button class="p-2 rounded-full text-primary bg-purple-50 dark:bg-gray-700 hover:bg-purple-100 dark:hover:bg-gray-600 transition-colors">
+<span class="material-icons-round">chat_bubble_outline</span>
+</button>
+</div>
+<div class="mt-12 flex flex-col items-center justify-center text-center opacity-60">
+<div class="w-48 h-48 relative mb-4">
+<svg class="w-full h-full fill-current text-gray-200 dark:text-gray-700" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+<path d="M165.5,88.5 C161.4,78.2 147.2,74.5 138.8,79.5 C132.8,47.8 88.5,41.2 73.5,65.8 C63.5,62.8 49.5,68.2 46.5,78.5 C24.5,85.2 18.2,115.8 35.5,130.5 C32.5,138.5 35.8,155.5 45.5,158.5 L158.5,158.5 C168.5,152.8 171.2,139.5 167.5,130.5 C184.2,112.5 174.5,91.8 165.5,88.5 Z"></path>
+<circle class="fill-gray-400 dark:fill-gray-600" cx="75" cy="100" r="5"></circle>
+<circle class="fill-gray-400 dark:fill-gray-600" cx="125" cy="100" r="5"></circle>
+<path class="stroke-gray-400 dark:stroke-gray-600" d="M95,115 Q100,120 105,115" fill="none" stroke="currentColor" stroke-width="3"></path>
+</svg>
+<div class="absolute top-10 left-12 w-8 h-8 bg-gray-200 dark:bg-gray-700 rounded-tl-full rotate-[-15deg]"></div>
+<div class="absolute top-6 right-16 w-8 h-10 bg-gray-200 dark:bg-gray-700 rounded-tr-full rotate-[15deg]"></div>
+</div>
+<p class="text-sm text-subtext-light dark:text-subtext-dark font-medium">
+                     That's all your fur-iends for now! <br/> Go explore the map to meet more.
+                 </p>
+</div>
+</div>
+</main>
+<nav class="fixed bottom-0 w-full bg-surface-light dark:bg-surface-dark border-t border-gray-100 dark:border-gray-800 pb-6 pt-2 px-6 shadow-[0_-5px_20px_rgba(0,0,0,0.03)] z-50">
+<div class="flex justify-between items-center max-w-md mx-auto">
+<a class="flex flex-col items-center group" href="#">
+<div class="p-2 rounded-2xl group-hover:bg-purple-50 dark:group-hover:bg-gray-800 transition-colors">
+<span class="material-icons-round text-subtext-light dark:text-subtext-dark group-hover:text-primary transition-colors text-2xl">place</span>
+</div>
+<span class="text-[10px] font-semibold text-subtext-light dark:text-subtext-dark group-hover:text-primary mt-1">Places</span>
+</a>
+<a class="flex flex-col items-center group" href="#">
+<div class="p-2 rounded-2xl group-hover:bg-purple-50 dark:group-hover:bg-gray-800 transition-colors">
+<span class="material-icons-round text-subtext-light dark:text-subtext-dark group-hover:text-primary transition-colors text-2xl">chat_bubble_outline</span>
+</div>
+<span class="text-[10px] font-semibold text-subtext-light dark:text-subtext-dark group-hover:text-primary mt-1">Messages</span>
+</a>
+<a class="flex flex-col items-center group relative" href="#">
+<div class="absolute -top-2 w-8 h-1 bg-primary rounded-full mb-2"></div>
+<div class="p-2 rounded-2xl bg-purple-50 dark:bg-gray-800 transition-colors">
+<span class="material-icons-round text-primary text-2xl">people</span>
+</div>
+<span class="text-[10px] font-bold text-primary mt-1">Friends</span>
+</a>
+<a class="flex flex-col items-center group" href="#">
+<div class="p-2 rounded-2xl group-hover:bg-purple-50 dark:group-hover:bg-gray-800 transition-colors">
+<span class="material-icons-round text-subtext-light dark:text-subtext-dark group-hover:text-primary transition-colors text-2xl">person_outline</span>
+</div>
+<span class="text-[10px] font-semibold text-subtext-light dark:text-subtext-dark group-hover:text-primary mt-1">Profile</span>
+</a>
+</div>
+</nav>
+
+</body></html>
