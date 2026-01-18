@@ -10,6 +10,7 @@ import { PremiumBadge } from "@/components/ui/premium-badge";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/useAuth";
 import { useIsUserOnline } from "@/hooks/usePresence";
+import { useKeyboardVisible } from "@/hooks/useKeyboardVisible";
 import { useAppStore } from "@/stores/appStore";
 import { useThreadMessages } from "@/stores/selectors";
 import type { DMThread, DMMessage, Profile } from "@/types/database";
@@ -53,6 +54,7 @@ export default function DMConversationPage({ params }: { params: Promise<{ threa
     ? (thread.participant_1_id === user?.id ? thread.participant_2_id : thread.participant_1_id)
     : undefined;
   const isOtherOnline = useIsUserOnline(otherParticipantId);
+  const isKeyboardVisible = useKeyboardVisible();
 
   useEffect(() => {
     let isMounted = true;
@@ -173,7 +175,7 @@ export default function DMConversationPage({ params }: { params: Promise<{ threa
 
   if (loading || !thread) {
     return (
-      <div className="flex flex-col h-screen-safe md:h-screen">
+      <div className={cn("flex flex-col md:h-screen", isKeyboardVisible ? "h-[100dvh]" : "h-screen-safe")}>
         <div className="bg-card border-b p-4 pt-[calc(1rem+var(--safe-area-top))] md:pt-4 flex items-center gap-4">
           <Skeleton className="h-8 w-8 rounded-full" />
           <div className="space-y-2">
@@ -191,7 +193,7 @@ export default function DMConversationPage({ params }: { params: Promise<{ threa
   const other = thread.participant_1_id === user?.id ? thread.participant_2 : thread.participant_1;
 
   return (
-    <div className="flex flex-col h-screen-safe md:h-screen">
+    <div className={cn("flex flex-col md:h-screen", isKeyboardVisible ? "h-[100dvh]" : "h-screen-safe")}>
       <header className="bg-card border-b p-4 pt-[calc(1rem+var(--safe-area-top))] md:pt-4 flex items-center gap-4 sticky top-0 z-10">
         <Link href="/messages" className="md:hidden">
           <ArrowLeft />

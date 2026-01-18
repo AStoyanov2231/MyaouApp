@@ -22,6 +22,7 @@ type MapContainerProps = {
   selectedPlace: Place | null;
   onMarkerClick: (place: Place) => void;
   userLocation: [number, number] | null;
+  searchRadius?: number;
 };
 
 export function MapContainer({
@@ -31,6 +32,7 @@ export function MapContainer({
   selectedPlace,
   onMarkerClick,
   userLocation,
+  searchRadius = 50,
 }: MapContainerProps) {
   return (
     <div className="w-full h-full relative z-0">
@@ -41,6 +43,7 @@ export function MapContainer({
         selectedPlace={selectedPlace}
         onMarkerClick={onMarkerClick}
         userLocation={userLocation}
+        searchRadius={searchRadius}
       />
     </div>
   );

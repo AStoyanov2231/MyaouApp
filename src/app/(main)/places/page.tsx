@@ -1,6 +1,7 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useNearbyPlaces } from "@/hooks/useNearbyPlaces";
+import { useIsPremium } from "@/stores/selectors";
 import { Place } from "@/types/database";
 import { MapContainer } from "@/components/places/MapContainer";
 import { MobilePlacesView } from "@/components/places/MobilePlacesView";
@@ -13,8 +14,21 @@ export default function PlacesPage() {
   const [locationPermission, setLocationPermission] = useState<boolean | null>(null);
   const [isDesktop, setIsDesktop] = useState(false);
 
-  // Fetch nearby places based on user location (50m radius)
-  const { places: nearbyPlaces, loading, refetch } = useNearbyPlaces(userLocation, { radius: 50 });
+  // Premium users get 200m radius, free users get 50m
+  const isPremium = useIsPremium();
+  const searchRadius = isPremium ? 200 : 50;
+
+  // Fetch nearby places based on user location
+  const { places: nearbyPlaces, loading, refetch } = useNearbyPlaces(userLocation, { radius: searchRadius });
+
+  // Refetch when premium status changes (e.g., profile loads after initial fetch)
+  const prevRadiusRef = useRef(searchRadius);
+  useEffect(() => {
+    if (prevRadiusRef.current !== searchRadius && userLocation) {
+      prevRadiusRef.current = searchRadius;
+      refetch();
+    }
+  }, [searchRadius, userLocation, refetch]);
 
   // Detect desktop to conditionally render map (prevents Leaflet errors on mobile)
   useEffect(() => {
@@ -100,6 +114,7 @@ export default function PlacesPage() {
               selectedPlace={selectedPlace}
               onMarkerClick={handlePlaceSelect}
               userLocation={userLocation}
+              searchRadius={searchRadius}
             />
           )}
 
@@ -131,6 +146,7 @@ export default function PlacesPage() {
           onBack={handleBack}
           userLocation={userLocation}
           locationPermission={locationPermission}
+          searchRadius={searchRadius}
         />
       )}
     </>

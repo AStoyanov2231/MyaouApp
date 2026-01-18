@@ -16,6 +16,7 @@ type MobilePlacesViewProps = {
   onBack: () => void;
   userLocation: [number, number] | null;
   locationPermission: boolean | null;
+  searchRadius?: number;
 };
 
 export function MobilePlacesView({
@@ -27,6 +28,7 @@ export function MobilePlacesView({
   onBack,
   userLocation,
   locationPermission,
+  searchRadius = 50,
 }: MobilePlacesViewProps) {
   const showLocationPrompt = locationPermission === false || !mapCenter;
 
@@ -56,6 +58,7 @@ export function MobilePlacesView({
             selectedPlace={selectedPlace}
             onMarkerClick={onPlaceSelect}
             userLocation={userLocation}
+            searchRadius={searchRadius}
           />
         )}
       </div>
