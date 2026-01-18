@@ -430,6 +430,30 @@ body {
   .scroll-container {
     overscroll-behavior-y: contain;
   }
+
+  /* Cat ears avatar effect */
+  .cat-avatar {
+    @apply relative;
+  }
+  .cat-avatar::before,
+  .cat-avatar::after {
+    content: '';
+    position: absolute;
+    top: -4px;
+    width: 12px;
+    height: 12px;
+    background: hsl(var(--cat-pink));
+    border-radius: 2px;
+    z-index: 10;
+  }
+  .cat-avatar::before {
+    left: 4px;
+    transform: rotate(-20deg);
+  }
+  .cat-avatar::after {
+    right: 4px;
+    transform: rotate(20deg);
+  }
 }
 
 /* Message animations */

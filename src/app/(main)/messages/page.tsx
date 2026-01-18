@@ -4,21 +4,29 @@ import { useSearchParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Skeleton } from "@/components/ui/skeleton";
+import { PremiumBadge } from "@/components/ui/premium-badge";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/useAuth";
 import { useThreads, useIsMessagesLoaded } from "@/stores/selectors";
-import type { DMThreadWithParticipants } from "@/stores/appStore";
-import { formatDistanceToNow } from "date-fns";
+import { useAppStore, type DMThreadWithParticipants } from "@/stores/appStore";
+import { formatDistanceToNow, differenceInSeconds } from "date-fns";
 import { MapPin } from "lucide-react";
 
 function getInitials(name: string) {
   return name.slice(0, 2).toUpperCase();
 }
 
+function formatMessageTime(date: Date): string {
+  const secondsAgo = differenceInSeconds(new Date(), date);
+  if (secondsAgo < 60) return "Now";
+  return formatDistanceToNow(date, { addSuffix: false });
+}
+
 export default function MessagesPage() {
   const { user } = useAuth();
   const threads = useThreads();
   const isLoaded = useIsMessagesLoaded();
+  const onlineUsers = useAppStore((state) => state.onlineUsers);
   const searchParams = useSearchParams();
   const router = useRouter();
 
@@ -65,8 +73,11 @@ export default function MessagesPage() {
           {threads.map((thread) => {
             const isPlace = thread.type === "place";
             const href = isPlace ? `/messages/place/${thread.id}` : `/messages/${thread.id}`;
-            const name = isPlace ? thread.name : (() => { const o = getOtherParticipant(thread); return o.display_name || o.username; })();
-            const avatarSrc = isPlace ? thread.cached_photo_url : getOtherParticipant(thread).avatar_url;
+            const otherUser = !isPlace ? getOtherParticipant(thread) : null;
+            const name = isPlace ? thread.name : (otherUser?.display_name || otherUser?.username || "");
+            const avatarSrc = isPlace ? thread.cached_photo_url : otherUser?.avatar_url;
+            const isOnline = otherUser ? onlineUsers.has(otherUser.id) : false;
+            const isPremium = otherUser?.is_premium || false;
 
             return (
               <Link
@@ -88,12 +99,18 @@ export default function MessagesPage() {
                       <MapPin className="text-primary h-5 w-5" />
                     </div>
                   ) : (
-                    <Avatar className="h-12 w-12 border-2 border-white dark:border-border shadow-sm">
-                      <AvatarImage src={avatarSrc || undefined} alt={name} />
-                      <AvatarFallback className="bg-primary text-primary-foreground">
-                        {getInitials(name)}
-                      </AvatarFallback>
-                    </Avatar>
+                    <div className="cat-avatar">
+                      <Avatar className="h-12 w-12 border-2 border-white dark:border-border shadow-sm">
+                        <AvatarImage src={avatarSrc || undefined} alt={name} />
+                        <AvatarFallback className="bg-primary text-primary-foreground">
+                          {getInitials(name)}
+                        </AvatarFallback>
+                      </Avatar>
+                    </div>
+                  )}
+                  {/* Online status indicator */}
+                  {!isPlace && isOnline && (
+                    <div className="absolute bottom-0 right-0 status-online presence-pulse" />
                   )}
                   {thread.unread_count ? (
                     <div className="absolute -top-1 -right-1 h-4 w-4 bg-accent rounded-full flex items-center justify-center shadow-sm">
@@ -105,10 +122,13 @@ export default function MessagesPage() {
                 </div>
                 {/* Column 2: Name + Message */}
                 <div className="flex-1 min-w-0">
-                  <p className={cn(
-                    "text-lg truncate mb-0.5",
-                    thread.unread_count ? "font-bold" : "font-semibold"
-                  )}>{name}</p>
+                  <div className="flex items-center gap-1.5 mb-0.5">
+                    <p className={cn(
+                      "text-lg truncate",
+                      thread.unread_count ? "font-bold" : "font-semibold"
+                    )}>{name}</p>
+                    {isPremium && <PremiumBadge size="sm" />}
+                  </div>
                   {thread.last_message_preview && (
                     <p className={cn(
                       "text-sm truncate",
@@ -124,7 +144,7 @@ export default function MessagesPage() {
                       "text-xs font-semibold",
                       thread.unread_count ? "text-accent" : "text-muted-foreground"
                     )}>
-                      {formatDistanceToNow(new Date(thread.last_message_at), { addSuffix: false })}
+                      {formatMessageTime(new Date(thread.last_message_at))}
                     </span>
                   </div>
                 )}
