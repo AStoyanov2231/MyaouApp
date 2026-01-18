@@ -38,25 +38,51 @@ export default function PlacesPage() {
     return () => window.removeEventListener("resize", checkDesktop);
   }, []);
 
-  // Request geolocation on mount
+  // Watch geolocation continuously for location updates
   useEffect(() => {
-    if (navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition(
-        (position) => {
-          const coords: [number, number] = [
-            position.coords.latitude,
-            position.coords.longitude,
-          ];
-          setUserLocation(coords);
-          setLocationPermission(true);
-        },
-        () => {
-          setLocationPermission(false);
-        }
-      );
-    } else {
+    if (!navigator.geolocation) {
       setLocationPermission(false);
+      return;
     }
+
+    // Get initial position quickly
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        const coords: [number, number] = [
+          position.coords.latitude,
+          position.coords.longitude,
+        ];
+        setUserLocation(coords);
+        setLocationPermission(true);
+      },
+      () => {
+        setLocationPermission(false);
+      }
+    );
+
+    // Watch for continuous location updates
+    const watchId = navigator.geolocation.watchPosition(
+      (position) => {
+        const coords: [number, number] = [
+          position.coords.latitude,
+          position.coords.longitude,
+        ];
+        setUserLocation(coords);
+        setLocationPermission(true);
+      },
+      () => {
+        // Don't set permission to false on watch error - initial position may have succeeded
+      },
+      {
+        enableHighAccuracy: true,
+        maximumAge: 10000, // Accept cached position up to 10 seconds old
+        timeout: 30000,
+      }
+    );
+
+    return () => {
+      navigator.geolocation.clearWatch(watchId);
+    };
   }, []);
 
   const [mapCenter, setMapCenter] = useState<[number, number] | null>(null);
