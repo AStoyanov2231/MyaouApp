@@ -98,6 +98,7 @@ Location-based chat app where users discover real-world places (via Google Place
 | `threadMessages` | Map of thread/place ID → messages |
 | `friends` / `requests` | Friends list and pending requests |
 | `onlineUsers` | Set of online user IDs |
+| `isPlaceDetailOpen` | UI state: whether place detail panel is open (hides MobileNav) |
 | `isPreloading` | Loading state |
 
 **Selectors**: `useThreadMessages`, `useFriends`, `useFriendRequests`, `useOnlineUsers`, `useIsPremium`
@@ -117,6 +118,8 @@ Location-based chat app where users discover real-world places (via Google Place
 **Premium Subscription** - Checkout → Stripe redirect → webhook updates DB → portal for management.
 
 **Photo Privacy** - Private photos server-filtered, only visible to premium users. Avatars always public.
+
+**Responsive Chat Layout** - Chat pages (`/messages/[threadId]`, `/messages/place/[placeId]`) use `fixed inset-0` on mobile for full-screen experience, but `md:relative md:inset-auto md:h-full` on desktop to stay within main content area and not cover Sidebar.
 
 ## Design System
 
@@ -177,7 +180,7 @@ Location-based chat app where users discover real-world places (via Google Place
 | `Skeleton` | `shimmer` prop for shimmer effect (default: false) |
 | `Avatar` | New `AvatarWithStatus` with online/away/offline indicators |
 | `Sidebar` | Sliding active indicator, icon hover animations, badge pulse |
-| `MobileNav` | Glass effect, active indicator bar, icon animations |
+| `MobileNav` | Glass effect, active indicator bar, icon animations. Auto-hides when: keyboard visible, in chat (`/messages/*`), or place detail panel open |
 
 ### Animations (tailwind.config.ts)
 | Animation | Purpose |

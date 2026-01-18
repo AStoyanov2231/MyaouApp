@@ -1,11 +1,11 @@
 "use client";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
 import { useRef, useEffect, useState } from "react";
 import { MapPin, MessageCircle, Users, User } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { useUnreadMessagesContext } from "@/contexts/UnreadMessagesContext";
+import { useOptimisticNav } from "@/hooks/useOptimisticNav";
 
 const navItems = [
   { href: "/places", icon: MapPin, label: "Places" },
@@ -15,17 +15,17 @@ const navItems = [
 ];
 
 export function Sidebar() {
-  const pathname = usePathname();
+  const { activePath, setOptimisticPath } = useOptimisticNav();
   const { unreadCount } = useUnreadMessagesContext();
   const navRef = useRef<HTMLElement>(null);
   const [indicatorStyle, setIndicatorStyle] = useState({ top: 0, height: 0 });
 
-  // Calculate indicator position based on active nav item
+  // Calculate indicator position based on active nav item (uses optimistic path for instant feel)
   useEffect(() => {
     const updateIndicator = () => {
       if (!navRef.current) return;
 
-      const activeIndex = navItems.findIndex(item => pathname.startsWith(item.href));
+      const activeIndex = navItems.findIndex(item => activePath.startsWith(item.href));
       if (activeIndex === -1) {
         setIndicatorStyle({ top: 0, height: 0 });
         return;
@@ -48,7 +48,7 @@ export function Sidebar() {
     updateIndicator();
     window.addEventListener('resize', updateIndicator);
     return () => window.removeEventListener('resize', updateIndicator);
-  }, [pathname]);
+  }, [activePath]);
 
   return (
     <aside className="hidden md:flex flex-col w-64 bg-card border-r h-screen sticky top-0">
@@ -70,12 +70,13 @@ export function Sidebar() {
         />
 
         {navItems.map(({ href, icon: Icon, label }) => {
-          const isActive = pathname.startsWith(href);
+          const isActive = activePath.startsWith(href);
 
           return (
             <Link
               key={href}
               href={href}
+              onClick={() => setOptimisticPath(href)}
               className={cn(
                 "flex items-center gap-3 px-4 py-3 rounded-lg transition-all duration-200 group relative",
                 isActive

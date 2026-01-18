@@ -1,12 +1,12 @@
 "use client";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
 import { MapPin, MessageCircle, Users, User } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { useUnreadMessagesContext } from "@/contexts/UnreadMessagesContext";
 import { useKeyboardVisible } from "@/hooks/useKeyboardVisible";
 import { useAppStore } from "@/stores/appStore";
+import { useOptimisticNav } from "@/hooks/useOptimisticNav";
 
 const navItems = [
   { href: "/places", icon: MapPin, label: "Places" },
@@ -16,24 +16,26 @@ const navItems = [
 ];
 
 export function MobileNav() {
-  const pathname = usePathname();
+  const { pathname, activePath, setOptimisticPath } = useOptimisticNav();
   const { unreadCount } = useUnreadMessagesContext();
   const isKeyboardVisible = useKeyboardVisible();
   const isPlaceDetailOpen = useAppStore((s) => s.isPlaceDetailOpen);
 
   // Hide nav when keyboard is open, in a chat conversation, or place detail panel is open
+  // Use real pathname for visibility (not optimistic) so nav doesn't flash
   const isInChat = pathname.startsWith("/messages/");
   if (isKeyboardVisible || isInChat || isPlaceDetailOpen) return null;
 
   return (
     <nav className="md:hidden fixed bottom-4 left-4 right-4 glass border-0 flex rounded-3xl shadow-[0_4px_20px_rgba(0,0,0,0.08)] z-50">
       {navItems.map(({ href, icon: Icon, label }) => {
-        const isActive = pathname.startsWith(href);
+        const isActive = activePath.startsWith(href);
 
         return (
           <Link
             key={href}
             href={href}
+            onClick={() => setOptimisticPath(href)}
             className={cn(
               "flex-1 flex flex-col items-center pt-4 pb-2 text-xs transition-all duration-200 relative group",
               isActive
