@@ -326,6 +326,7 @@ body {
     @apply w-3 h-3 rounded-full bg-warm;
     box-shadow: 0 0 0 2px hsl(var(--background)), 0 0 8px hsl(var(--warm) / 0.5);
   }
+  
   .status-offline {
     @apply w-3 h-3 rounded-full bg-muted-foreground/50;
     box-shadow: 0 0 0 2px hsl(var(--background));
@@ -429,30 +430,6 @@ body {
   /* Scrollable container that allows internal scrolling */
   .scroll-container {
     overscroll-behavior-y: contain;
-  }
-
-  /* Cat ears avatar effect */
-  .cat-avatar {
-    @apply relative;
-  }
-  .cat-avatar::before,
-  .cat-avatar::after {
-    content: '';
-    position: absolute;
-    top: -4px;
-    width: 12px;
-    height: 12px;
-    background: hsl(var(--cat-pink));
-    border-radius: 2px;
-    z-index: 10;
-  }
-  .cat-avatar::before {
-    left: 4px;
-    transform: rotate(-20deg);
-  }
-  .cat-avatar::after {
-    right: 4px;
-    transform: rotate(20deg);
   }
 }
 

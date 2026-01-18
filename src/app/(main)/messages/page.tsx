@@ -99,14 +99,12 @@ export default function MessagesPage() {
                       <MapPin className="text-primary h-5 w-5" />
                     </div>
                   ) : (
-                    <div className="cat-avatar">
-                      <Avatar className="h-12 w-12 border-2 border-white dark:border-border shadow-sm">
-                        <AvatarImage src={avatarSrc || undefined} alt={name} />
-                        <AvatarFallback className="bg-primary text-primary-foreground">
-                          {getInitials(name)}
-                        </AvatarFallback>
-                      </Avatar>
-                    </div>
+                    <Avatar className="h-12 w-12 border-2 border-white dark:border-border shadow-sm">
+                      <AvatarImage src={avatarSrc || undefined} alt={name} />
+                      <AvatarFallback className="bg-primary text-primary-foreground">
+                        {getInitials(name)}
+                      </AvatarFallback>
+                    </Avatar>
                   )}
                   {/* Online status indicator */}
                   {!isPlace && isOnline && (
