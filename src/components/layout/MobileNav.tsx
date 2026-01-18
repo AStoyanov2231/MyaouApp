@@ -19,8 +19,9 @@ export function MobileNav() {
   const { unreadCount } = useUnreadMessagesContext();
   const isKeyboardVisible = useKeyboardVisible();
 
-  // Hide nav when keyboard is open to save screen space
-  if (isKeyboardVisible) return null;
+  // Hide nav when keyboard is open or in a chat conversation
+  const isInChat = pathname.startsWith("/messages/");
+  if (isKeyboardVisible || isInChat) return null;
 
   return (
     <nav className="md:hidden fixed bottom-4 left-4 right-4 glass border-0 flex rounded-3xl shadow-[0_4px_20px_rgba(0,0,0,0.08)] z-50">

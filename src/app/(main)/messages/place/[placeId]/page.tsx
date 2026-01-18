@@ -116,7 +116,7 @@ export default function PlaceChatPage({ params }: { params: Promise<{ placeId: s
         <div ref={messagesEndRef} />
       </div>
 
-      <form onSubmit={handleSend} className="chat-input-container p-3 pb-[calc(0.75rem+var(--safe-area-bottom))] md:pb-3 flex items-center gap-3">
+      <form onSubmit={handleSend} className="p-3 pb-[calc(0.75rem+var(--safe-area-bottom))] md:pb-3 flex items-center gap-3">
         <Input
           value={input}
           onChange={(e) => setInput(e.target.value)}
