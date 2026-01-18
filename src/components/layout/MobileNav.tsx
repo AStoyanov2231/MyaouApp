@@ -5,6 +5,7 @@ import { MapPin, MessageCircle, Users, User } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { useUnreadMessagesContext } from "@/contexts/UnreadMessagesContext";
+import { useKeyboardVisible } from "@/hooks/useKeyboardVisible";
 
 const navItems = [
   { href: "/places", icon: MapPin, label: "Places" },
@@ -16,6 +17,10 @@ const navItems = [
 export function MobileNav() {
   const pathname = usePathname();
   const { unreadCount } = useUnreadMessagesContext();
+  const isKeyboardVisible = useKeyboardVisible();
+
+  // Hide nav when keyboard is open to save screen space
+  if (isKeyboardVisible) return null;
 
   return (
     <nav className="md:hidden fixed bottom-0 left-0 right-0 glass border-t-0 flex pb-[var(--safe-area-bottom)] z-50">

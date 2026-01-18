@@ -350,6 +350,9 @@ export default function DMConversationPage({ params }: { params: Promise<{ threa
           onChange={(e) => setInput(e.target.value)}
           placeholder="Type a message..."
           className="chat-input flex-1"
+          enterKeyHint="send"
+          autoComplete="off"
+          autoCorrect="on"
         />
         <Button type="submit" disabled={!input.trim() || sending} className="chat-send-button">
           {sending ? <Loader2 className="h-5 w-5 animate-spin" /> : <Send className="h-5 w-5" />}
