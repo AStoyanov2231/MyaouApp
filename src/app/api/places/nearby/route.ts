@@ -60,6 +60,9 @@ export async function GET(request: NextRequest) {
   // Calculate bounding box for DB query
   const bounds = getBoundingBox(latitude, longitude, radius);
 
+  // Determine if this is a premium radius request (larger than standard 50m)
+  const isPremiumRadius = radius > 50;
+
   // Check DB for cached places in this area
   const { data: cachedPlaces, error: dbError } = await supabase
     .from("places")
@@ -73,8 +76,9 @@ export async function GET(request: NextRequest) {
     console.error("DB query error:", dbError);
   }
 
-  // If we have cached places, return them
-  if (cachedPlaces && cachedPlaces.length > 0) {
+  // For standard radius: return cache if available
+  // For premium radius: always fetch from Google to cover full expanded area
+  if (!isPremiumRadius && cachedPlaces && cachedPlaces.length > 0) {
     console.log(`[NEARBY] ✅ CACHE HIT - Returning ${cachedPlaces.length} places from Supabase DB`);
     return NextResponse.json({
       places: cachedPlaces as Place[],
@@ -82,7 +86,12 @@ export async function GET(request: NextRequest) {
     });
   }
 
-  console.log(`[NEARBY] ❌ CACHE MISS - No cached places found, calling Google API...`);
+  // Log why we're calling Google API
+  if (isPremiumRadius) {
+    console.log(`[NEARBY] 🔷 PREMIUM RADIUS (${radius}m) - Fetching from Google API to cover expanded area...`);
+  } else {
+    console.log(`[NEARBY] ❌ CACHE MISS - No cached places found, calling Google API...`);
+  }
 
   // No cached places, fetch from Google
   if (!process.env.GOOGLE_PLACES_API_KEY || process.env.GOOGLE_PLACES_API_KEY === "your_google_api_key") {
@@ -191,10 +200,32 @@ export async function GET(request: NextRequest) {
         cached_photo_url: null,
         created_at: new Date().toISOString(),
       }));
+
+      // For premium radius, merge with cached places
+      if (isPremiumRadius && cachedPlaces && cachedPlaces.length > 0) {
+        const googlePlaceIds = new Set(transformedPlaces.map(p => p.google_place_id));
+        const uniqueCachedPlaces = cachedPlaces.filter(p => !googlePlaceIds.has(p.google_place_id));
+        const mergedPlaces = [...transformedPlaces, ...uniqueCachedPlaces];
+        return NextResponse.json({ places: mergedPlaces, source: "google" });
+      }
+
       return NextResponse.json({ places: transformedPlaces, source: "google" });
     }
 
     console.log(`[NEARBY] 🌐 GOOGLE API - Fetched ${insertedPlaces?.length || 0} places and saved to Supabase DB`);
+
+    // For premium radius, merge Google results with any existing cached places
+    // (dedupe by google_place_id to avoid duplicates)
+    if (isPremiumRadius && cachedPlaces && cachedPlaces.length > 0) {
+      const googlePlaceIds = new Set((insertedPlaces || []).map((p: Place) => p.google_place_id));
+      const uniqueCachedPlaces = cachedPlaces.filter(p => !googlePlaceIds.has(p.google_place_id));
+      const mergedPlaces = [...(insertedPlaces || []), ...uniqueCachedPlaces];
+      console.log(`[NEARBY] 🔷 PREMIUM - Merged ${insertedPlaces?.length || 0} new + ${uniqueCachedPlaces.length} cached = ${mergedPlaces.length} total places`);
+      return NextResponse.json({
+        places: mergedPlaces as Place[],
+        source: "google",
+      });
+    }
 
     return NextResponse.json({
       places: insertedPlaces as Place[],
