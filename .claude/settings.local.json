@@ -77,7 +77,9 @@
       "mcp__plugin_supabase_supabase__get_logs",
       "Skill(example-skills:frontend-design)",
       "Bash(dir:*)",
-      "mcp__ide__getDiagnostics"
+      "mcp__ide__getDiagnostics",
+      "WebFetch(domain:raw.githubusercontent.com)",
+      "WebFetch(domain:github.com)"
     ]
   }
 }
