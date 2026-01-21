@@ -116,6 +116,10 @@ export function useAuth() {
             const fetchedProfile = await fetchOrCreateProfile(authUser);
             if (isMounted) {
               setProfile(fetchedProfile);
+              // Notify native app of successful login
+              if (isNativeApp()) {
+                postToNative("authStateChanged", { isAuthenticated: true });
+              }
             }
           }
         } else {
