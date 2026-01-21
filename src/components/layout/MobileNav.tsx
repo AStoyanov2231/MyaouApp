@@ -7,6 +7,7 @@ import { useUnreadMessagesContext } from "@/contexts/UnreadMessagesContext";
 import { useKeyboardVisible } from "@/hooks/useKeyboardVisible";
 import { useAppStore } from "@/stores/appStore";
 import { useOptimisticNav } from "@/hooks/useOptimisticNav";
+import { isNativeApp } from "@/lib/native";
 
 const navItems = [
   { href: "/places", icon: MapPin, label: "Places" },
@@ -21,10 +22,11 @@ export function MobileNav() {
   const isKeyboardVisible = useKeyboardVisible();
   const isPlaceDetailOpen = useAppStore((s) => s.isPlaceDetailOpen);
 
-  // Hide nav when keyboard is open, in a chat conversation, or place detail panel is open
+  // Hide nav when in native app (native handles navigation)
+  // or when keyboard is open, in a chat conversation, or place detail panel is open
   // Use real pathname for visibility (not optimistic) so nav doesn't flash
   const isInChat = pathname.startsWith("/messages/");
-  if (isKeyboardVisible || isInChat || isPlaceDetailOpen) return null;
+  if (isNativeApp() || isKeyboardVisible || isInChat || isPlaceDetailOpen) return null;
 
   return (
     <nav className="md:hidden fixed bottom-4 left-4 right-4 glass border-0 flex rounded-3xl shadow-[0_4px_20px_rgba(0,0,0,0.08)] z-50">

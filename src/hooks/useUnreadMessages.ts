@@ -1,7 +1,8 @@
 "use client";
-import { useCallback } from "react";
+import { useCallback, useEffect } from "react";
 import { useAppStore } from "@/stores/appStore";
 import { useTotalUnread } from "@/stores/selectors";
+import { isNativeApp, postToNative } from "@/lib/native";
 
 /**
  * Hook to get unread message count from the global store.
@@ -26,6 +27,13 @@ export function useUnreadMessages() {
       console.error("Failed to fetch unread count:", error);
     }
   }, [setThreads, updateTotalUnread]);
+
+  // Sync unread count to native app for tab badge
+  useEffect(() => {
+    if (isNativeApp()) {
+      postToNative("updateBadge", { tab: "messages", count: unreadCount });
+    }
+  }, [unreadCount]);
 
   return { unreadCount, refetch };
 }
