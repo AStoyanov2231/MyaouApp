@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createClient } from "@/lib/supabase/server";
+import { createClient, createServiceClient } from "@/lib/supabase/server";
 
 export async function PATCH(request: NextRequest, { params }: { params: Promise<{ friendshipId: string }> }) {
   const { friendshipId } = await params;
@@ -67,14 +67,33 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const { error } = await supabase
+  // Use service client to bypass RLS for reliable deletion
+  const serviceClient = createServiceClient();
+
+  // First verify the friendship exists and user is authorized (requester or addressee)
+  const { data: friendship, error: fetchError } = await serviceClient
+    .from("friendships")
+    .select("id, requester_id, addressee_id")
+    .eq("id", friendshipId)
+    .single();
+
+  if (fetchError || !friendship) {
+    return NextResponse.json({ error: "Friendship not found" }, { status: 404 });
+  }
+
+  // Verify user is part of this friendship
+  if (friendship.requester_id !== user.id && friendship.addressee_id !== user.id) {
+    return NextResponse.json({ error: "Not authorized to delete this friendship" }, { status: 403 });
+  }
+
+  // Delete the friendship
+  const { error: deleteError } = await serviceClient
     .from("friendships")
     .delete()
-    .eq("id", friendshipId)
-    .or(`requester_id.eq.${user.id},addressee_id.eq.${user.id}`);
+    .eq("id", friendshipId);
 
-  if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+  if (deleteError) {
+    return NextResponse.json({ error: deleteError.message }, { status: 500 });
   }
 
   return NextResponse.json({ success: true });
