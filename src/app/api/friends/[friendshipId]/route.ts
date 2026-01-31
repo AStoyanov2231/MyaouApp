@@ -92,6 +92,18 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
     return NextResponse.json({ error: "Not authorized to delete this friendship" }, { status: 403 });
   }
 
+  // Delete any DM thread between the two users (messages cascade automatically)
+  const { requester_id, addressee_id } = friendship;
+  const { error: dmDeleteError } = await serviceClient
+    .from("dm_threads")
+    .delete()
+    .or(
+      `and(participant_1_id.eq.${requester_id},participant_2_id.eq.${addressee_id}),` +
+      `and(participant_1_id.eq.${addressee_id},participant_2_id.eq.${requester_id})`
+    );
+
+  console.log("[DELETE /api/friends] dm thread delete result - error:", dmDeleteError);
+
   // Delete the friendship
   const { error: deleteError } = await serviceClient
     .from("friendships")
