@@ -60,8 +60,11 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
 
 export async function DELETE(request: NextRequest, { params }: { params: Promise<{ friendshipId: string }> }) {
   const { friendshipId } = await params;
+  console.log("[DELETE /api/friends] friendshipId:", friendshipId);
+
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
+  console.log("[DELETE /api/friends] user:", user?.id);
 
   if (!user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -77,12 +80,15 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
     .eq("id", friendshipId)
     .single();
 
+  console.log("[DELETE /api/friends] friendship found:", friendship, "error:", fetchError);
+
   if (fetchError || !friendship) {
     return NextResponse.json({ error: "Friendship not found" }, { status: 404 });
   }
 
   // Verify user is part of this friendship
   if (friendship.requester_id !== user.id && friendship.addressee_id !== user.id) {
+    console.log("[DELETE /api/friends] Not authorized - user not part of friendship");
     return NextResponse.json({ error: "Not authorized to delete this friendship" }, { status: 403 });
   }
 
@@ -92,8 +98,24 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
     .delete()
     .eq("id", friendshipId);
 
+  console.log("[DELETE /api/friends] delete result - error:", deleteError);
+
   if (deleteError) {
     return NextResponse.json({ error: deleteError.message }, { status: 500 });
+  }
+
+  // Verify deletion succeeded by checking the row is gone
+  const { data: verifyDeleted, error: verifyError } = await serviceClient
+    .from("friendships")
+    .select("id")
+    .eq("id", friendshipId)
+    .maybeSingle();
+
+  console.log("[DELETE /api/friends] verification - row still exists:", !!verifyDeleted, "error:", verifyError);
+
+  if (verifyDeleted) {
+    console.log("[DELETE /api/friends] WARNING: Row still exists after delete!");
+    return NextResponse.json({ error: "Delete operation failed - row still exists" }, { status: 500 });
   }
 
   return NextResponse.json({ success: true });
