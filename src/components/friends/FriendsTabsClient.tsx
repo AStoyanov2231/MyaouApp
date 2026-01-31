@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useOptimistic, useTransition, useEffect } from "react";
-import { Check, X, Loader2 } from "lucide-react";
+import { Check, X, Loader2, Crown, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
@@ -17,6 +17,14 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import type { Profile, Friendship } from "@/types/database";
@@ -68,6 +76,10 @@ export function FriendsTabsClient({ initialFriends, initialRequests }: FriendsTa
   // State for unfriend confirmation dialog
   const [friendToRemove, setFriendToRemove] = useState<FriendWithFriendshipId | null>(null);
 
+  // State for upgrade dialog
+  const [showUpgradeDialog, setShowUpgradeDialog] = useState(false);
+  const [upgradeMessage, setUpgradeMessage] = useState("");
+
   // Optimistic updates for instant feedback on accept/reject
   const [optimisticRequests, updateOptimisticRequests] = useOptimistic(
     requests,
@@ -113,6 +125,13 @@ export function FriendsTabsClient({ initialFriends, initialRequests }: FriendsTa
         });
 
         if (!res.ok) {
+          if (res.status === 403) {
+            const data = await res.json();
+            if (data.error === "FRIEND_LIMIT_REACHED" || data.error === "REQUESTER_LIMIT_REACHED") {
+              setUpgradeMessage(data.message);
+              setShowUpgradeDialog(true);
+            }
+          }
           throw new Error("Failed to update friendship");
         }
 
@@ -319,6 +338,35 @@ export function FriendsTabsClient({ initialFriends, initialRequests }: FriendsTa
           )}
         </div>
       </TabsContent>
+
+      {/* Upgrade dialog */}
+      <Dialog open={showUpgradeDialog} onOpenChange={setShowUpgradeDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Crown className="h-5 w-5 text-amber-500" />
+              Upgrade to Premium
+            </DialogTitle>
+            <DialogDescription>{upgradeMessage}</DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowUpgradeDialog(false)}>
+              Maybe Later
+            </Button>
+            <Button
+              className="bg-gradient-to-r from-amber-400 to-orange-500"
+              onClick={async () => {
+                const res = await fetch("/api/stripe/checkout", { method: "POST" });
+                const data = await res.json();
+                if (data.url) window.location.href = data.url;
+              }}
+            >
+              <Sparkles className="h-4 w-4 mr-2" />
+              Upgrade Now
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </Tabs>
   );
 }

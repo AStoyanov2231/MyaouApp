@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 
+const FREE_USER_FRIEND_LIMIT = 1;
+
 export async function GET() {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
@@ -36,6 +38,28 @@ export async function POST(request: NextRequest) {
 
   if (addressee_id === user.id) {
     return NextResponse.json({ error: "Cannot friend yourself" }, { status: 400 });
+  }
+
+  // Check if free user has reached friend limit
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("is_premium")
+    .eq("id", user.id)
+    .single();
+
+  if (!profile?.is_premium) {
+    const { count } = await supabase
+      .from("friendships")
+      .select("*", { count: "exact", head: true })
+      .eq("status", "accepted")
+      .or(`requester_id.eq.${user.id},addressee_id.eq.${user.id}`);
+
+    if ((count ?? 0) >= FREE_USER_FRIEND_LIMIT) {
+      return NextResponse.json(
+        { error: "FRIEND_LIMIT_REACHED", message: "Free users can only have 1 friend. Upgrade to Premium for unlimited friends." },
+        { status: 403 }
+      );
+    }
   }
 
   const { data, error } = await supabase

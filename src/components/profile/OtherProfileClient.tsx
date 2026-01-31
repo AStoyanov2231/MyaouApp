@@ -1,7 +1,8 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { UserPlus, Clock, Check, Loader2, MapPin } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { UserPlus, Clock, Check, Loader2, MapPin, MessageCircle, Crown, Sparkles } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
@@ -9,6 +10,14 @@ import { PremiumBadge } from "@/components/ui/premium-badge";
 import { ProfileStats } from "./ProfileStats";
 import { ProfileInterests } from "./ProfileInterests";
 import { OtherUserGallery } from "./OtherUserGallery";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import type {
   Profile,
   ProfilePhoto,
@@ -41,8 +50,11 @@ export function OtherProfileClient({
   currentUserId,
   viewerIsPremium,
 }: OtherProfileClientProps) {
+  const router = useRouter();
   const [friendship, setFriendship] = useState(initialFriendship);
   const [isPending, startTransition] = useTransition();
+  const [showUpgradeDialog, setShowUpgradeDialog] = useState(false);
+  const [upgradeMessage, setUpgradeMessage] = useState("");
 
   const getFriendshipStatus = () => {
     if (!friendship) return "none";
@@ -68,6 +80,26 @@ export function OtherProfileClient({
       if (res.ok) {
         const data = await res.json();
         setFriendship(data.friendship);
+      } else if (res.status === 403) {
+        const data = await res.json();
+        if (data.error === "FRIEND_LIMIT_REACHED") {
+          setUpgradeMessage(data.message);
+          setShowUpgradeDialog(true);
+        }
+      }
+    });
+  };
+
+  const handleDirectMessage = () => {
+    startTransition(async () => {
+      const res = await fetch("/api/dm/threads", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ user_id: profile.id }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        router.push(`/messages/${data.thread_id}`);
       }
     });
   };
@@ -84,6 +116,12 @@ export function OtherProfileClient({
 
       if (res.ok) {
         setFriendship((prev) => (prev ? { ...prev, status: "accepted" } : null));
+      } else if (res.status === 403) {
+        const data = await res.json();
+        if (data.error === "FRIEND_LIMIT_REACHED" || data.error === "REQUESTER_LIMIT_REACHED") {
+          setUpgradeMessage(data.message);
+          setShowUpgradeDialog(true);
+        }
       }
     });
   };
@@ -132,20 +170,33 @@ export function OtherProfileClient({
               </div>
 
               {/* Friend button */}
-              <div className="flex justify-center md:justify-end">
+              <div className="flex justify-center md:justify-end gap-2">
                 {status === "none" && (
-                  <Button
-                    onClick={handleSendRequest}
-                    disabled={isPending}
-                    className="min-w-[140px]"
-                  >
-                    {isPending ? (
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                    ) : (
-                      <UserPlus className="h-4 w-4" />
+                  <>
+                    <Button
+                      onClick={handleSendRequest}
+                      disabled={isPending}
+                      className="min-w-[120px]"
+                    >
+                      {isPending ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <UserPlus className="h-4 w-4" />
+                      )}
+                      Add Friend
+                    </Button>
+                    {viewerIsPremium && (
+                      <Button
+                        variant="outline"
+                        onClick={handleDirectMessage}
+                        disabled={isPending}
+                        className="min-w-[120px]"
+                      >
+                        <MessageCircle className="h-4 w-4" />
+                        Direct Message
+                      </Button>
                     )}
-                    Add Friend
-                  </Button>
+                  </>
                 )}
 
                 {status === "pending_sent" && (
@@ -207,6 +258,35 @@ export function OtherProfileClient({
       <p className="text-center text-sm text-muted-foreground mt-4">
         Member since {new Date(profile.created_at).toLocaleDateString()}
       </p>
+
+      {/* Upgrade dialog */}
+      <Dialog open={showUpgradeDialog} onOpenChange={setShowUpgradeDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Crown className="h-5 w-5 text-amber-500" />
+              Upgrade to Premium
+            </DialogTitle>
+            <DialogDescription>{upgradeMessage}</DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowUpgradeDialog(false)}>
+              Maybe Later
+            </Button>
+            <Button
+              className="bg-gradient-to-r from-amber-400 to-orange-500"
+              onClick={async () => {
+                const res = await fetch("/api/stripe/checkout", { method: "POST" });
+                const data = await res.json();
+                if (data.url) window.location.href = data.url;
+              }}
+            >
+              <Sparkles className="h-4 w-4 mr-2" />
+              Upgrade Now
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
