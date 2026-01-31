@@ -75,6 +75,7 @@ interface AppState {
   // Friends data
   friends: FriendWithFriendshipId[];
   requests: FriendshipWithRequester[];
+  pendingFriendDeletions: Set<string>; // Track friend IDs being deleted
 
   // Messages data
   threads: Thread[];
@@ -108,6 +109,8 @@ interface AppState {
   addFriend: (friend: FriendWithFriendshipId) => void;
   removeFriend: (friendId: string) => void;
   removeRequest: (requestId: string) => void;
+  markFriendDeletionPending: (friendId: string) => void;
+  clearFriendDeletionPending: (friendId: string) => void;
 
   // Messages actions
   setThreads: (threads: Thread[]) => void;
@@ -143,6 +146,7 @@ export const useAppStore = create<AppState>((set, get) => ({
   stats: initialStats,
   friends: [],
   requests: [],
+  pendingFriendDeletions: new Set<string>(),
   threads: [],
   threadMessages: {},
   totalUnread: 0,
@@ -175,6 +179,12 @@ export const useAppStore = create<AppState>((set, get) => ({
 
       const data: PreloadResponse = await res.json();
 
+      // Filter out any pending deletions from the friends list
+      const pendingDeletions = get().pendingFriendDeletions;
+      const filteredFriends = data.friends.friends.filter(
+        (f) => !pendingDeletions.has(f.id)
+      );
+
       set({
         // Profile
         profile: data.profile.profile,
@@ -185,7 +195,7 @@ export const useAppStore = create<AppState>((set, get) => ({
         isProfileLoaded: true,
 
         // Friends
-        friends: data.friends.friends,
+        friends: filteredFriends,
         requests: data.friends.requests,
         isFriendsLoaded: true,
 
@@ -218,6 +228,7 @@ export const useAppStore = create<AppState>((set, get) => ({
       stats: initialStats,
       friends: [],
       requests: [],
+      pendingFriendDeletions: new Set<string>(),
       threads: [],
       threadMessages: {},
       totalUnread: 0,
@@ -243,7 +254,11 @@ export const useAppStore = create<AppState>((set, get) => ({
     set((state) => ({ stats: { ...state.stats, ...partialStats } })),
 
   // Friends actions
-  setFriends: (friends) => set({ friends }),
+  setFriends: (friends) =>
+    set((state) => ({
+      // Filter out any friends that are pending deletion to prevent them from reappearing
+      friends: friends.filter((f) => !state.pendingFriendDeletions.has(f.id)),
+    })),
   setRequests: (requests) => set({ requests }),
   addFriend: (friend) =>
     set((state) => ({
@@ -259,6 +274,16 @@ export const useAppStore = create<AppState>((set, get) => ({
     set((state) => ({
       requests: state.requests.filter((r) => r.id !== requestId),
     })),
+  markFriendDeletionPending: (friendId) =>
+    set((state) => ({
+      pendingFriendDeletions: new Set(state.pendingFriendDeletions).add(friendId),
+    })),
+  clearFriendDeletionPending: (friendId) =>
+    set((state) => {
+      const next = new Set(state.pendingFriendDeletions);
+      next.delete(friendId);
+      return { pendingFriendDeletions: next };
+    }),
 
   // Messages actions
   setThreads: (threads) => set({ threads }),

@@ -32,6 +32,9 @@ import { useAppStore, type FriendWithFriendshipId } from "@/stores/appStore";
 import { useFriends, useFriendRequests, useIsFriendsLoaded, useOnlineUsers } from "@/stores/selectors";
 import { SwipeableFriendCard } from "./SwipeableFriendCard";
 
+// Delay before clearing pending deletion flag to allow realtime events to settle
+const PENDING_DELETION_CLEAR_DELAY_MS = 3000;
+
 function getInitials(name: string | null | undefined): string {
   if (!name || name.length === 0) return "??";
   return name.slice(0, 2).toUpperCase();
@@ -55,6 +58,8 @@ export function FriendsTabsClient({ initialFriends, initialRequests }: FriendsTa
   const addFriend = useAppStore((s) => s.addFriend);
   const removeFriend = useAppStore((s) => s.removeFriend);
   const removeRequest = useAppStore((s) => s.removeRequest);
+  const markFriendDeletionPending = useAppStore((s) => s.markFriendDeletionPending);
+  const clearFriendDeletionPending = useAppStore((s) => s.clearFriendDeletionPending);
 
   // Use store data if loaded, otherwise fall back to SSR props
   const friends = isFriendsLoaded ? storeFriends : initialFriends;
@@ -165,6 +170,9 @@ export function FriendsTabsClient({ initialFriends, initialRequests }: FriendsTa
     // Mark as processing
     setProcessingIds((prev) => new Set(prev).add(friendshipId));
 
+    // Mark as pending deletion to prevent realtime refetch from restoring the friend
+    markFriendDeletionPending(friendId);
+
     // Instant UI update - remove from friends list
     updateOptimisticFriends({ type: "remove", friendId });
 
@@ -180,8 +188,12 @@ export function FriendsTabsClient({ initialFriends, initialRequests }: FriendsTa
 
         // Update store on success
         removeFriend(friendId);
+        // Clear pending after a delay to ensure realtime events have settled
+        setTimeout(() => clearFriendDeletionPending(friendId), PENDING_DELETION_CLEAR_DELAY_MS);
       } catch (error) {
         console.error("Failed to unfriend:", error);
+        // Clear pending on error so user can retry
+        clearFriendDeletionPending(friendId);
       } finally {
         setProcessingIds((prev) => {
           const next = new Set(prev);
