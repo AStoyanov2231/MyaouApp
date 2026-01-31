@@ -100,6 +100,14 @@ export function OtherProfileClient({
       if (res.ok) {
         const data = await res.json();
         router.push(`/messages/${data.thread_id}`);
+      } else if (res.status === 403) {
+        try {
+          const data = await res.json();
+          setUpgradeMessage(data.error || "Could not start conversation");
+          setShowUpgradeDialog(true);
+        } catch {
+          // Non-JSON response, ignore
+        }
       }
     });
   };
