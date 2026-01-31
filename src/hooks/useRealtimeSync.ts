@@ -11,6 +11,8 @@ const supabase = createClient();
 const VISIBILITY_THROTTLE_MS = 30000;
 // Debounce refetchThreads to prevent excessive API calls
 const REFETCH_DEBOUNCE_MS = 500;
+// Debounce refetchFriends to prevent race conditions with optimistic updates
+const FRIENDS_REFETCH_DEBOUNCE_MS = 1500;
 
 export function useRealtimeSync() {
   const isPreloading = useIsPreloading();
@@ -26,6 +28,7 @@ export function useRealtimeSync() {
   const lastVisibilityFetchRef = useRef<number>(0);
   const isSetupRef = useRef<boolean>(false);
   const refetchDebounceRef = useRef<NodeJS.Timeout | null>(null);
+  const friendsDebounceRef = useRef<NodeJS.Timeout | null>(null);
 
   // Refetch threads and unread count (debounced)
   const refetchThreads = useCallback(async () => {
@@ -70,6 +73,16 @@ export function useRealtimeSync() {
       console.error("Failed to refetch friends:", error);
     }
   }, [setFriends, setRequests, updateStats]);
+
+  // Debounced version to prevent race conditions with optimistic UI updates
+  const debouncedRefetchFriends = useCallback(() => {
+    if (friendsDebounceRef.current) {
+      clearTimeout(friendsDebounceRef.current);
+    }
+    friendsDebounceRef.current = setTimeout(() => {
+      refetchFriends();
+    }, FRIENDS_REFETCH_DEBOUNCE_MS);
+  }, [refetchFriends]);
 
   useEffect(() => {
     // Don't set up channels until preload completes
@@ -165,7 +178,7 @@ export function useRealtimeSync() {
       )
       .subscribe();
 
-    // Channel for friendships - refetch friends on any change
+    // Channel for friendships - refetch friends on any change (debounced)
     const friendshipsChannel = supabase
       .channel("global-friendships")
       .on(
@@ -177,7 +190,8 @@ export function useRealtimeSync() {
         },
         () => {
           if (!isMounted) return;
-          refetchFriends();
+          // Use debounced refetch to prevent race conditions with optimistic updates
+          debouncedRefetchFriends();
         }
       )
       .subscribe();
@@ -228,14 +242,17 @@ export function useRealtimeSync() {
       isMounted = false;
       isSetupRef.current = false;
       document.removeEventListener("visibilitychange", handleVisibilityChange);
-      // Clean up debounce timeout
+      // Clean up debounce timeouts
       if (refetchDebounceRef.current) {
         clearTimeout(refetchDebounceRef.current);
+      }
+      if (friendsDebounceRef.current) {
+        clearTimeout(friendsDebounceRef.current);
       }
       channelsRef.current.forEach((channel) => {
         supabase.removeChannel(channel);
       });
       channelsRef.current = [];
     };
-  }, [isPreloading, addMessage, updateMessage, debouncedRefetchThreads, refetchFriends]);
+  }, [isPreloading, addMessage, updateMessage, debouncedRefetchThreads, debouncedRefetchFriends]);
 }

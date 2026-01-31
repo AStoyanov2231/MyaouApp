@@ -71,43 +71,51 @@ export function OtherProfileClient({
 
   const handleSendRequest = () => {
     startTransition(async () => {
-      const res = await fetch("/api/friends", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ addressee_id: profile.id }),
-      });
+      try {
+        const res = await fetch("/api/friends", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ addressee_id: profile.id }),
+        });
 
-      if (res.ok) {
-        const data = await res.json();
-        setFriendship(data.friendship);
-      } else if (res.status === 403) {
-        const data = await res.json();
-        if (data.error === "FRIEND_LIMIT_REACHED") {
-          setUpgradeMessage(data.message);
-          setShowUpgradeDialog(true);
+        if (res.ok) {
+          const data = await res.json();
+          setFriendship(data.friendship);
+        } else if (res.status === 403) {
+          const data = await res.json();
+          if (data.error === "FRIEND_LIMIT_REACHED") {
+            setUpgradeMessage(data.message);
+            setShowUpgradeDialog(true);
+          }
         }
+      } catch (error) {
+        console.error("Failed to send friend request:", error);
       }
     });
   };
 
   const handleDirectMessage = () => {
     startTransition(async () => {
-      const res = await fetch("/api/dm/threads", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ user_id: profile.id }),
-      });
-      if (res.ok) {
-        const data = await res.json();
-        router.push(`/messages/${data.thread_id}`);
-      } else if (res.status === 403) {
-        try {
+      try {
+        const res = await fetch("/api/dm/threads", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ user_id: profile.id }),
+        });
+        if (res.ok) {
           const data = await res.json();
-          setUpgradeMessage(data.error || "Could not start conversation");
-          setShowUpgradeDialog(true);
-        } catch {
-          // Non-JSON response, ignore
+          router.push(`/messages/${data.thread_id}`);
+        } else if (res.status === 403) {
+          try {
+            const data = await res.json();
+            setUpgradeMessage(data.error || "Could not start conversation");
+            setShowUpgradeDialog(true);
+          } catch {
+            // Non-JSON response, ignore
+          }
         }
+      } catch (error) {
+        console.error("Failed to start direct message:", error);
       }
     });
   };
@@ -116,20 +124,24 @@ export function OtherProfileClient({
     if (!friendship) return;
 
     startTransition(async () => {
-      const res = await fetch(`/api/friends/${friendship.id}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ status: "accepted" }),
-      });
+      try {
+        const res = await fetch(`/api/friends/${friendship.id}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ status: "accepted" }),
+        });
 
-      if (res.ok) {
-        setFriendship((prev) => (prev ? { ...prev, status: "accepted" } : null));
-      } else if (res.status === 403) {
-        const data = await res.json();
-        if (data.error === "FRIEND_LIMIT_REACHED" || data.error === "REQUESTER_LIMIT_REACHED") {
-          setUpgradeMessage(data.message);
-          setShowUpgradeDialog(true);
+        if (res.ok) {
+          setFriendship((prev) => (prev ? { ...prev, status: "accepted" } : null));
+        } else if (res.status === 403) {
+          const data = await res.json();
+          if (data.error === "FRIEND_LIMIT_REACHED" || data.error === "REQUESTER_LIMIT_REACHED") {
+            setUpgradeMessage(data.message);
+            setShowUpgradeDialog(true);
+          }
         }
+      } catch (error) {
+        console.error("Failed to accept friend request:", error);
       }
     });
   };
@@ -284,9 +296,15 @@ export function OtherProfileClient({
             <Button
               className="bg-gradient-to-r from-amber-400 to-orange-500"
               onClick={async () => {
-                const res = await fetch("/api/stripe/checkout", { method: "POST" });
-                const data = await res.json();
-                if (data.url) window.location.href = data.url;
+                try {
+                  const res = await fetch("/api/stripe/checkout", { method: "POST" });
+                  if (res.ok) {
+                    const data = await res.json();
+                    if (data.url) window.location.href = data.url;
+                  }
+                } catch (error) {
+                  console.error("Failed to initiate checkout:", error);
+                }
               }}
             >
               <Sparkles className="h-4 w-4 mr-2" />
